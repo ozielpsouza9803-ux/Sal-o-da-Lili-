@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Sliders,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft
 } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { 
@@ -60,12 +61,14 @@ import { cn } from '@/src/lib/utils';
 interface VitrineProps {
   onNavigateToAgenda?: () => void;
   onNavigateToProducts?: () => void;
+  onBack?: () => void;
   isAdmin?: boolean;
 }
 
 export const Vitrine: React.FC<VitrineProps> = ({ 
   onNavigateToAgenda,
   onNavigateToProducts,
+  onBack,
   isAdmin = false
 }) => {
   // Persistent showcase collections
@@ -201,18 +204,31 @@ export const Vitrine: React.FC<VitrineProps> = ({
 
       {/* Top Header & View Mode Switcher (Admin Only) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Vitrine Digital
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#d4af37]/15 text-[#d4af37] border border-[#d4af37]/30">
-              Salão Luxe
-            </span>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-2.5 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-[#d4af37] border border-white/10 rounded-2xl transition-all flex items-center gap-1.5 text-xs font-bold shrink-0"
+              title="Voltar à tela anterior"
+            >
+              <ArrowLeft size={18} className="text-[#d4af37]" />
+              <span className="hidden sm:inline">Voltar</span>
+            </button>
+          )}
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                Vitrine Digital
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#d4af37]/15 text-[#d4af37] border border-[#d4af37]/30">
+                Salão Luxe
+              </span>
+            </div>
+            <p className="text-neutral-400 text-xs sm:text-sm mt-1">
+              Apresentação visual de serviços, produtos, galeria de resultados e depoimentos reais.
+            </p>
           </div>
-          <p className="text-neutral-400 text-xs sm:text-sm mt-1">
-            Apresentação visual de serviços, produtos, galeria de resultados e depoimentos reais.
-          </p>
         </div>
 
         {/* View Mode Toggle (Displayed ONLY for Admin) */}

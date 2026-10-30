@@ -163,7 +163,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       endTime: endTimeStr,
       totalDuration: service.duration,
       totalPrice: service.price,
-      status: 'aguardando', // Solicitado online pelo cliente
+      status: 'aguardando',
       notes: bookNotes.trim() ? `Solicitado pelo portal do cliente: ${bookNotes.trim()}` : 'Solicitado pelo portal do cliente',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -180,20 +180,20 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
   // LOGIN SCREEN
   if (!loggedClient) {
     return (
-      <div className="min-h-[80vh] flex flex-col justify-center items-center p-4 animate-in fade-in duration-500">
-        <div className="w-full max-w-md bg-[#101010] border border-[#d4af37]/30 rounded-3xl p-8 shadow-2xl space-y-6">
+      <div className="min-h-[75vh] flex flex-col justify-center items-center p-4 animate-in fade-in duration-500">
+        <div className="w-full max-w-md bg-[#101010] border border-[#d4af37]/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] mx-auto mb-3">
-              <Sparkles size={32} />
+            <div className="w-14 h-14 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] mx-auto mb-2">
+              <Sparkles size={28} />
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Área do Cliente</h2>
+            <h2 className="text-xl font-bold text-white tracking-tight">Área do Cliente</h2>
             <p className="text-neutral-400 text-xs">
               Acesse seus agendamentos, histórico de visitas e solicite novos horários.
             </p>
           </div>
 
           {loginError && (
-            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-center gap-2">
               <AlertTriangle size={16} className="shrink-0" />
               <span>{loginError}</span>
             </div>
@@ -210,7 +210,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
                 placeholder="exemplo@email.com"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
-                className="w-full bg-[#161616] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-[#d4af37]/50"
+                className="w-full bg-[#161616] border border-white/10 rounded-xl p-3 text-white text-xs focus:outline-none focus:border-[#d4af37]/50"
               />
             </div>
 
@@ -225,7 +225,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
                   placeholder="Informe sua senha"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 pl-3 pr-10 text-white text-sm focus:outline-none focus:border-[#d4af37]/50"
+                  className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 pl-3 pr-10 text-white text-xs focus:outline-none focus:border-[#d4af37]/50"
                 />
                 <button
                   type="button"
@@ -239,16 +239,16 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
 
             <button
               type="submit"
-              className="w-full py-3 bg-[#d4af37] text-black font-bold text-sm rounded-xl hover:bg-[#d4af37]/90 transition-all shadow-lg shadow-[#d4af37]/15 mt-2"
+              className="w-full py-3 bg-[#d4af37] text-black font-bold text-xs rounded-xl hover:bg-[#b8860b] transition-all shadow-lg shadow-[#d4af37]/15 mt-2"
             >
               Acessar Minha Conta
             </button>
           </form>
 
-          {/* Quick demo switcher for administrator */}
+          {/* Quick Demo Switcher */}
           <div className="pt-4 border-t border-white/5 space-y-2">
-            <span className="text-[11px] text-neutral-500 block text-center uppercase tracking-wider font-semibold">
-              Acesso Rápido de Teste (Clientes Cadastrados):
+            <span className="text-[10px] text-neutral-500 block text-center uppercase tracking-wider font-semibold">
+              Clientes Cadastrados para Teste:
             </span>
             <div className="flex flex-wrap gap-1.5 justify-center">
               {clients.slice(0, 3).map(c => (
@@ -268,7 +268,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
               onClick={onBackToAdmin}
               className="text-xs text-neutral-400 hover:text-white flex items-center gap-1.5 mx-auto transition-colors"
             >
-              <ArrowLeft size={14} /> Voltar ao Painel Gerenciador
+              <ArrowLeft size={14} /> Voltar à Tela Inicial
             </button>
           </div>
         </div>
@@ -282,7 +282,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       {/* Header do Portal do Cliente */}
       <div className="bg-[#111111] border border-[#d4af37]/20 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-[#d4af37] overflow-hidden flex items-center justify-center text-lg font-bold text-[#d4af37]">
+          <div className="w-14 h-14 rounded-full bg-neutral-800 border-2 border-[#d4af37] overflow-hidden flex items-center justify-center text-base font-bold text-[#d4af37]">
             {loggedClient.photoUrl ? (
               <img src={loggedClient.photoUrl} alt={loggedClient.name} className="w-full h-full object-cover" />
             ) : (
@@ -291,7 +291,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white tracking-tight">Olá, {loggedClient.name}!</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight">Olá, {loggedClient.name}!</h1>
               {loggedClient.status === 'bloqueado' && (
                 <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold uppercase border border-rose-500/30">
                   Conta Suspensa
@@ -299,7 +299,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
               )}
             </div>
             <p className="text-neutral-400 text-xs mt-0.5">
-              Bem-vindo à sua área exclusiva no Salão Luxe Unissex.
+              Sua área exclusiva de agendamentos no Salão Luxe.
             </p>
           </div>
         </div>
@@ -307,7 +307,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setActiveTab('novo_agendamento')}
-            className="flex items-center gap-2 bg-[#d4af37] text-black px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/90 transition-all shadow-lg shadow-[#d4af37]/10"
+            className="flex items-center gap-2 bg-[#d4af37] text-black px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#b8860b] transition-all shadow-md shadow-[#d4af37]/10"
           >
             <Plus size={16} />
             Agendar Horário
@@ -321,13 +321,6 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
             <LogOut size={16} />
             Sair
           </button>
-
-          <button
-            onClick={onBackToAdmin}
-            className="flex items-center gap-1.5 text-xs text-[#d4af37] font-bold hover:underline ml-2"
-          >
-            Painel Admin
-          </button>
         </div>
       </div>
 
@@ -336,7 +329,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
         <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
           <AlertTriangle size={18} className="shrink-0 text-rose-400" />
           <span>
-            Seu cadastro está temporariamente bloqueado para novos agendamentos online. Por favor, entre em contato via WhatsApp com o salão para regularizar seu cadastro.
+            Seu cadastro está temporariamente bloqueado para novos agendamentos online. Por favor, entre em contato via WhatsApp com o salão.
           </span>
         </div>
       )}
@@ -371,8 +364,8 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
         <div className="space-y-6 animate-in fade-in">
           {/* Próximos Atendimentos */}
           <div className="space-y-3">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Calendar size={18} className="text-[#d4af37]" />
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Calendar size={16} className="text-[#d4af37]" />
               Próximos Agendamentos
             </h3>
 
@@ -382,8 +375,8 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
                 return (
                   <div key={app.id} className="p-5 rounded-2xl bg-[#111111] border border-[#d4af37]/25 space-y-3">
                     <div className="flex justify-between items-start">
-                      <span className="text-sm font-bold text-[#d4af37] flex items-center gap-1.5">
-                        <Clock size={15} />
+                      <span className="text-xs font-bold text-[#d4af37] flex items-center gap-1.5">
+                        <Clock size={14} />
                         {app.startTime} - {app.endTime} ({app.date})
                       </span>
                       <span className={cn(
@@ -397,13 +390,13 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
                     </div>
 
                     <div>
-                      <h4 className="text-white font-bold text-base">{app.serviceNames.join(' + ')}</h4>
+                      <h4 className="text-white font-bold text-sm">{app.serviceNames.join(' + ')}</h4>
                       <p className="text-neutral-400 text-xs mt-0.5">Profissional: {app.professionalName}</p>
                     </div>
 
                     <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                      <span className="text-white font-bold text-sm">{formatCurrency(app.totalPrice)}</span>
-                      <span className="text-neutral-500 text-[11px]">{app.totalDuration} minutos de atendimento</span>
+                      <span className="text-white font-bold text-xs">{formatCurrency(app.totalPrice)}</span>
+                      <span className="text-neutral-500 text-[10px]">{app.totalDuration} min de atendimento</span>
                     </div>
                   </div>
                 );
@@ -411,7 +404,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
 
               {upcomingAppointments.length === 0 && (
                 <div className="col-span-full py-12 text-center text-neutral-500 text-xs bg-[#111111] border border-white/5 rounded-2xl space-y-2">
-                  <Calendar size={32} className="mx-auto opacity-30" />
+                  <Calendar size={28} className="mx-auto opacity-30" />
                   <p>Você não tem nenhum atendimento agendado para os próximos dias.</p>
                   <button
                     onClick={() => setActiveTab('novo_agendamento')}
@@ -427,8 +420,8 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
           {/* Histórico Anterior */}
           {pastAppointments.length > 0 && (
             <div className="space-y-3 pt-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Clock size={18} className="text-neutral-400" />
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Clock size={16} className="text-neutral-400" />
                 Histórico de Atendimentos Anteriores
               </h3>
               <div className="space-y-2">
@@ -460,7 +453,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       {activeTab === 'novo_agendamento' && (
         <div className="max-w-2xl mx-auto bg-[#111111] border border-[#d4af37]/30 rounded-3xl p-6 sm:p-8 space-y-6 animate-in fade-in">
           <div>
-            <h3 className="text-xl font-bold text-white tracking-tight">Agendamento Online</h3>
+            <h3 className="text-lg font-bold text-white tracking-tight">Agendamento Online</h3>
             <p className="text-neutral-400 text-xs mt-1">
               Escolha seu serviço, o profissional da sua preferência e a data desejada.
             </p>
@@ -566,7 +559,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
             <button
               type="submit"
               disabled={loggedClient.status === 'bloqueado'}
-              className="w-full py-3.5 bg-[#d4af37] text-black font-bold text-sm rounded-xl hover:bg-[#d4af37]/90 transition-all shadow-lg shadow-[#d4af37]/15 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-[#d4af37] text-black font-bold text-xs rounded-xl hover:bg-[#b8860b] transition-all shadow-lg shadow-[#d4af37]/15 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirmar Solicitação de Agendamento
             </button>
@@ -578,8 +571,8 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       {activeTab === 'favoritos' && (
         <div className="space-y-4 animate-in fade-in">
           <div className="flex justify-between items-center">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Heart size={18} className="text-[#d4af37]" />
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Heart size={16} className="text-[#d4af37]" />
               Seus Serviços Preferidos
             </h3>
             <span className="text-xs text-neutral-400">Atalhos rápidos para agendar</span>
@@ -598,18 +591,18 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
                     </span>
                     <Heart size={16} className="fill-[#d4af37] text-[#d4af37]" />
                   </div>
-                  <h4 className="text-white font-bold text-base mt-2">{service.name}</h4>
+                  <h4 className="text-white font-bold text-sm mt-2">{service.name}</h4>
                   <p className="text-neutral-400 text-xs">{service.duration} minutos</p>
                 </div>
 
                 <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                  <span className="text-white font-bold text-sm">{formatCurrency(service.price)}</span>
+                  <span className="text-white font-bold text-xs">{formatCurrency(service.price)}</span>
                   <button
                     onClick={() => {
                       setSelectedServiceId(service.id);
                       setActiveTab('novo_agendamento');
                     }}
-                    className="px-3 py-1.5 bg-[#d4af37] text-black rounded-lg text-xs font-bold hover:bg-[#d4af37]/90 transition-all"
+                    className="px-3 py-1.5 bg-[#d4af37] text-black rounded-lg text-xs font-bold hover:bg-[#b8860b] transition-all"
                   >
                     Agendar Este
                   </button>
@@ -618,7 +611,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
             ))}
 
             {favoriteServices.length === 0 && (
-              <div className="col-span-full py-16 text-center text-neutral-500 text-xs bg-[#111111] border border-white/5 rounded-2xl">
+              <div className="col-span-full py-12 text-center text-neutral-500 text-xs bg-[#111111] border border-white/5 rounded-2xl">
                 Nenhum serviço favoritado ainda.
               </div>
             )}
@@ -629,8 +622,8 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       {/* TAB 4: COMPRAS & RECIBOS */}
       {activeTab === 'compras' && (
         <div className="space-y-4 animate-in fade-in">
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <ShoppingBag size={18} className="text-[#d4af37]" />
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <ShoppingBag size={16} className="text-[#d4af37]" />
             Suas Compras e Pagamentos Realizados
           </h3>
 
@@ -649,7 +642,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
             ))}
 
             {clientPurchases.length === 0 && (
-              <div className="py-16 text-center text-neutral-500 text-xs bg-[#111111] border border-white/5 rounded-2xl">
+              <div className="py-12 text-center text-neutral-500 text-xs bg-[#111111] border border-white/5 rounded-2xl">
                 Nenhuma compra de produto ou pagamento avulso registrado em sua conta.
               </div>
             )}
@@ -660,7 +653,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       {/* TAB 5: MEUS DADOS */}
       {activeTab === 'perfil' && (
         <div className="max-w-2xl mx-auto bg-[#111111] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 animate-in fade-in">
-          <h3 className="text-xl font-bold text-white tracking-tight">Seus Dados Pessoais</h3>
+          <h3 className="text-lg font-bold text-white tracking-tight">Seus Dados Pessoais</h3>
 
           <div className="space-y-4 text-xs">
             <div className="p-4 bg-white/5 rounded-xl space-y-1">

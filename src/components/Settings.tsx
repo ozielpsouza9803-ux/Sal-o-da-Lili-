@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Store, Shield, Palette, Bell, HelpCircle, Save, CheckCircle2, Menu } from 'lucide-react';
+import { Settings as SettingsIcon, Store, Shield, Palette, Bell, HelpCircle, Save, CheckCircle2, Menu, Sliders } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { PixConfig } from '@/src/types';
 import { getDefaultPixConfig, getDefaultSalonSettings, SalonSettings } from '@/src/services/pixService';
 import { MenuManager } from '@/src/components/admin/MenuManager';
+import { AppearanceManager } from '@/src/components/admin/AppearanceManager';
 
 export const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dados' | 'menu' | 'seguranca'>('dados');
+  const [activeTab, setActiveTab] = useState<'dados' | 'menu' | 'aparencia' | 'seguranca'>('dados');
 
   const [salonSettings, setSalonSettings] = useLocalStorage<SalonSettings>('salon_settings', getDefaultSalonSettings());
   const [pixConfig, setPixConfig] = useLocalStorage<PixConfig>('pix_config', getDefaultPixConfig());
@@ -52,7 +53,7 @@ export const Settings: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-700">
       <div>
         <h1 className="text-3xl font-bold text-white tracking-tight">Configurações do Salão Luxe</h1>
-        <p className="text-neutral-400 mt-1">Gerencie os dados, o menu lateral dinâmico e as permissões do sistema.</p>
+        <p className="text-neutral-400 mt-1">Gerencie os dados, a aparência visual, o menu lateral e as permissões do sistema.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -61,6 +62,7 @@ export const Settings: React.FC = () => {
           {[
             { id: 'dados', icon: Store, label: 'Dados do Salão' },
             { id: 'menu', icon: Menu, label: 'Gerenciador do Menu' },
+            { id: 'aparencia', icon: Sliders, label: 'Aparência & Layout' },
             { id: 'seguranca', icon: Shield, label: 'Segurança & Permissões' },
           ].map((item) => (
             <button 
@@ -157,6 +159,10 @@ export const Settings: React.FC = () => {
 
           {activeTab === 'menu' && (
             <MenuManager />
+          )}
+
+          {activeTab === 'aparencia' && (
+            <AppearanceManager />
           )}
 
           {activeTab === 'seguranca' && (

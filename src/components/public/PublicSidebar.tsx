@@ -11,6 +11,7 @@ import {
   ShoppingBag, 
   MessageSquare, 
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   Scissors
 } from 'lucide-react';
@@ -95,9 +96,11 @@ export const PublicSidebar: React.FC<PublicSidebarProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+              className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-[#d4af37] border border-white/10 rounded-xl transition-all flex items-center gap-1 text-xs font-bold"
+              title="Recolher Menu Lateral"
             >
-              <X size={20} />
+              <ChevronLeft size={18} className="text-[#d4af37]" />
+              <span>Recolher</span>
             </button>
           </div>
 

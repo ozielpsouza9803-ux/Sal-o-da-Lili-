@@ -28,7 +28,8 @@ import {
   syncConversationsWithRegisteredEntities, 
   ADMIN_PARTICIPANT_ID,
   ADMIN_PARTICIPANT_NAME,
-  broadcastChatUpdate
+  sendMessageDirectly,
+  markConversationAsReadDirectly
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { initialProfessionalsList } from '@/src/components/Professionals';
@@ -68,18 +69,30 @@ export const Chat: React.FC = () => {
     }
   }, [conversations, activeConversationId]);
 
-  // Sync event listener for cross-tab or external simulation
+  // Real-time synchronization listener for cross-component chat updates
   useEffect(() => {
     const handleSync = () => {
-      // Trigger re-render by reading storage or setting state
+      try {
+        const rawMsgs = localStorage.getItem('chat_messages');
+        if (rawMsgs) {
+          setMessages(JSON.parse(rawMsgs));
+        }
+        const rawConvs = localStorage.getItem('chat_conversations');
+        if (rawConvs) {
+          setStoredConversations(JSON.parse(rawConvs));
+        }
+      } catch (err) {
+        console.error('Chat sync error:', err);
+      }
     };
+
     window.addEventListener('salao-luxe-chat-sync', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
       window.removeEventListener('salao-luxe-chat-sync', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, []);
+  }, [setMessages, setStoredConversations]);
 
   const activeConversation = useMemo(() => {
     return conversations.find(c => c.id === activeConversationId) || null;
@@ -94,35 +107,7 @@ export const Chat: React.FC = () => {
 
   // Handlers
   const handleMarkAsRead = (convId: string) => {
-    // 1. Reset unread count in conversations
-    setStoredConversations(prev => {
-      const idx = prev.findIndex(c => c.id === convId);
-      if (idx === -1) {
-        // Find in synced and add
-        const found = conversations.find(c => c.id === convId);
-        if (found) {
-          return [...prev, { ...found, unreadCountAdmin: 0 }];
-        }
-        return prev;
-      }
-      if (prev[idx].unreadCountAdmin === 0) return prev;
-      const updated = [...prev];
-      updated[idx] = { ...updated[idx], unreadCountAdmin: 0 };
-      return updated;
-    });
-
-    // 2. Mark incoming messages as 'lida'
-    setMessages(prev => {
-      let changed = false;
-      const updated = prev.map(m => {
-        if (m.conversationId === convId && m.senderRole !== 'admin' && m.status !== 'lida') {
-          changed = true;
-          return { ...m, status: 'lida' as const };
-        }
-        return m;
-      });
-      return changed ? updated : prev;
-    });
+    markConversationAsReadDirectly(convId, 'admin');
   };
 
   const handleSendMessage = (
@@ -134,59 +119,27 @@ export const Chat: React.FC = () => {
   ) => {
     if (!activeConversation) return;
 
-    const timestamp = new Date().toISOString();
     const recipientId = senderRole === 'admin' ? activeConversation.participantId : ADMIN_PARTICIPANT_ID;
 
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    sendMessageDirectly({
       conversationId: activeConversation.id,
       senderId,
       senderName,
-      senderRole,
+      senderRole: senderRole as 'admin' | 'cliente' | 'profissional',
       recipientId,
       content,
       attachment,
-      status: senderRole === 'admin' ? 'entregue' : 'enviada',
-      timestamp
-    };
-
-    // Update messages
-    setMessages(prev => [...prev, newMsg]);
-
-    // Update conversation metadata
-    const snippet = content || (attachment?.type === 'image' ? '📷 Foto anexada' : '📎 Documento anexado');
-
-    setStoredConversations(prev => {
-      const existingIdx = prev.findIndex(c => c.id === activeConversation.id);
-      const isFromAdmin = senderRole === 'admin';
-
-      if (existingIdx >= 0) {
-        const copy = [...prev];
-        copy[existingIdx] = {
-          ...copy[existingIdx],
-          lastMessage: snippet,
-          lastMessageTimestamp: timestamp,
-          unreadCountAdmin: isFromAdmin ? 0 : (copy[existingIdx].unreadCountAdmin + 1),
-          unreadCountParticipant: isFromAdmin ? (copy[existingIdx].unreadCountParticipant + 1) : 0,
-          updatedAt: timestamp
-        };
-        return copy;
-      } else {
-        return [
-          {
-            ...activeConversation,
-            lastMessage: snippet,
-            lastMessageTimestamp: timestamp,
-            unreadCountAdmin: isFromAdmin ? 0 : 1,
-            unreadCountParticipant: isFromAdmin ? 1 : 0,
-            updatedAt: timestamp
-          },
-          ...prev
-        ];
+      participantDetails: {
+        type: activeConversation.type,
+        participantId: activeConversation.participantId,
+        participantName: activeConversation.participantName,
+        participantPhone: activeConversation.participantPhone,
+        participantWhatsapp: activeConversation.participantWhatsapp,
+        participantEmail: activeConversation.participantEmail,
+        participantPhotoUrl: activeConversation.participantPhotoUrl,
+        participantRoleDescription: activeConversation.participantRoleDescription
       }
     });
-
-    broadcastChatUpdate();
   };
 
   const handleSaveQuickReply = (reply: QuickReply) => {
@@ -248,15 +201,15 @@ export const Chat: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Chat Integrado
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Gerenciamento de Conversas & Chat ADM
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#d4af37]/15 text-[#d4af37] border border-[#d4af37]/30">
-              Salão Luxe Connect
+              Painel Restrito
             </span>
           </div>
-          <p className="text-neutral-400 text-sm mt-1">
-            Atendimento direto aos clientes e comunicação em tempo real com a equipe de profissionais.
+          <p className="text-neutral-400 text-xs sm:text-sm mt-1">
+            Atendimento centralizado para mensagens de clientes e comunicação em tempo real com os profissionais.
           </p>
         </div>
 
@@ -264,7 +217,7 @@ export const Chat: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsQuickRepliesModalOpen(true)}
-            className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all hover:border-[#d4af37]/40"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all hover:border-[#d4af37]/40"
           >
             <Zap size={16} className="text-[#d4af37]" />
             <span>Respostas Rápidas</span>
@@ -272,7 +225,7 @@ export const Chat: React.FC = () => {
 
           <button
             onClick={() => setIsNewChatModalOpen(true)}
-            className="px-4 py-2.5 bg-[#d4af37] hover:bg-[#e5c158] text-black rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all shadow-md shadow-[#d4af37]/20"
+            className="px-4 py-2 bg-[#d4af37] hover:bg-[#b8860b] text-black rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-[#d4af37]/20"
           >
             <Plus size={16} />
             <span>Nova Conversa</span>
@@ -282,54 +235,54 @@ export const Chat: React.FC = () => {
 
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-neutral-400 text-xs font-medium block">Total de Conversas</span>
-            <span className="text-xl sm:text-2xl font-bold text-white mt-1 block">{totalConversationsCount}</span>
-            <span className="text-[11px] text-[#d4af37]">Canais ativos</span>
+            <span className="text-lg sm:text-xl font-bold text-white mt-1 block">{totalConversationsCount}</span>
+            <span className="text-[10px] text-[#d4af37]">Canais ativos</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#d4af37]/10 text-[#d4af37] flex items-center justify-center border border-[#d4af37]/20">
-            <MessageSquare size={20} />
+          <div className="w-9 h-9 rounded-xl bg-[#d4af37]/10 text-[#d4af37] flex items-center justify-center border border-[#d4af37]/20">
+            <MessageSquare size={18} />
           </div>
         </div>
 
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-neutral-400 text-xs font-medium block">Clientes Conectados</span>
-            <span className="text-xl sm:text-2xl font-bold text-white mt-1 block">{clientConversationsCount}</span>
-            <span className="text-[11px] text-blue-400">Atendimento e pós-venda</span>
+            <span className="text-lg sm:text-xl font-bold text-white mt-1 block">{clientConversationsCount}</span>
+            <span className="text-[10px] text-blue-400">Atendimento e pós-venda</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
-            <UserSquare2 size={20} />
+          <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+            <UserSquare2 size={18} />
           </div>
         </div>
 
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-neutral-400 text-xs font-medium block">Equipe & Profissionais</span>
-            <span className="text-xl sm:text-2xl font-bold text-white mt-1 block">{proConversationsCount}</span>
-            <span className="text-[11px] text-emerald-400">Comunicação interna</span>
+            <span className="text-lg sm:text-xl font-bold text-white mt-1 block">{proConversationsCount}</span>
+            <span className="text-[10px] text-emerald-400">Comunicação interna</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-            <Users size={20} />
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+            <Users size={18} />
           </div>
         </div>
 
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center justify-between">
+        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl p-4 flex items-center justify-between">
           <div>
             <span className="text-neutral-400 text-xs font-medium block">Mensagens Pendentes</span>
-            <span className="text-xl sm:text-2xl font-bold text-white mt-1 block">{totalUnreadCount}</span>
-            <span className="text-[11px] text-rose-400">Não lidas pela gerência</span>
+            <span className="text-lg sm:text-xl font-bold text-white mt-1 block">{totalUnreadCount}</span>
+            <span className="text-[10px] text-rose-400">Não lidas pela gerência</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
-            <MessageCircle size={20} />
+          <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+            <MessageCircle size={18} />
           </div>
         </div>
       </div>
 
       {/* Main Chat Interface Container */}
-      <div className="bg-[#0a0a0a] border border-[#d4af37]/20 rounded-2xl overflow-hidden shadow-2xl h-[680px] flex flex-col md:flex-row">
-        {/* Left Sidebar (visible on desktop or when no conversation is active on mobile) */}
+      <div className="bg-[#0a0a0a] border border-[#d4af37]/20 rounded-2xl overflow-hidden shadow-2xl h-[580px] flex flex-col md:flex-row">
+        {/* Left Sidebar */}
         <div className={cn(
           "h-full md:block",
           activeConversationId ? "hidden md:flex" : "flex flex-col w-full"
@@ -362,10 +315,10 @@ export const Chat: React.FC = () => {
             />
           ) : (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[#070707]">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-[#d4af37] mb-4 border border-[#d4af37]/20">
-                <MessageSquare size={32} />
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-[#d4af37] mb-3 border border-[#d4af37]/20">
+                <MessageSquare size={28} />
               </div>
-              <h3 className="text-white font-bold text-lg mb-1">Nenhuma conversa selecionada</h3>
+              <h3 className="text-white font-bold text-sm mb-1">Nenhuma conversa selecionada</h3>
               <p className="text-neutral-400 text-xs max-w-sm">
                 Selecione um cliente ou membro da equipe ao lado para visualizar o histórico de mensagens e responder.
               </p>
@@ -387,10 +340,10 @@ export const Chat: React.FC = () => {
       {isNewChatModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#0f0f0f] border border-[#d4af37]/30 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="p-5 border-b border-white/10 bg-[#141414] flex items-center justify-between">
+            <div className="p-4 border-b border-white/10 bg-[#141414] flex items-center justify-between">
               <div>
-                <h3 className="text-white font-bold text-base">Iniciar Conversa</h3>
-                <p className="text-xs text-neutral-400">Selecione um cliente ou profissional cadastrado</p>
+                <h3 className="text-white font-bold text-sm">Iniciar Conversa</h3>
+                <p className="text-[11px] text-neutral-400">Selecione um cliente ou profissional cadastrado</p>
               </div>
               <button
                 onClick={() => setIsNewChatModalOpen(false)}
@@ -400,7 +353,7 @@ export const Chat: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 border-b border-white/5 bg-black/40">
+            <div className="p-3 border-b border-white/5 bg-black/40">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
                 <input
@@ -414,7 +367,7 @@ export const Chat: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-2 overflow-y-auto max-h-96 divide-y divide-white/5">
+            <div className="p-2 overflow-y-auto max-h-80 divide-y divide-white/5">
               {availableCandidates.length === 0 ? (
                 <div className="p-8 text-center text-xs text-neutral-500">
                   Nenhum cadastro encontrado.
@@ -430,16 +383,16 @@ export const Chat: React.FC = () => {
                     className="w-full p-3 flex items-center justify-between hover:bg-white/5 rounded-xl transition-colors text-left"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#161616] border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] font-semibold text-xs">
+                      <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] font-semibold text-xs">
                         {c.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <div className="text-white text-xs font-semibold">{c.name}</div>
-                        <div className="text-[11px] text-neutral-400">{c.roleOrPhone}</div>
+                        <div className="text-[10px] text-neutral-400">{c.roleOrPhone}</div>
                       </div>
                     </div>
                     <span className={cn(
-                      "text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded",
+                      "text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded",
                       c.type === 'profissional'
                         ? "bg-[#d4af37]/15 text-[#d4af37]"
                         : "bg-blue-500/15 text-blue-400"

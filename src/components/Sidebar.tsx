@@ -13,7 +13,8 @@ import {
   Settings,
   Menu,
   X,
-  Sparkles
+  Sparkles,
+  Home
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { ViewType, ChatConversation } from '@/src/types';
@@ -27,6 +28,7 @@ interface SidebarProps {
   onViewChange: (view: ViewType) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  onNavigateToPublicHome?: () => void;
 }
 
 const menuItems: { icon: React.ElementType; label: string; view: ViewType; isPortal?: boolean }[] = [
@@ -44,7 +46,7 @@ const menuItems: { icon: React.ElementType; label: string; view: ViewType; isPor
   { icon: Sparkles, label: 'Área do Cliente', view: 'area_cliente', isPortal: true },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen, setIsOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen, setIsOpen, onNavigateToPublicHome }) => {
   const [conversations] = useLocalStorage<ChatConversation[]>(
     'chat_conversations', 
     getInitialConversations(initialClientsList, initialProfessionalsList)
@@ -88,6 +90,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isO
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4">
             <ul className="space-y-2 px-3">
+              {/* Botão Tela Inicial do Salão */}
+              {onNavigateToPublicHome && (
+                <li>
+                  <button
+                    onClick={() => {
+                      onNavigateToPublicHome();
+                      if (window.innerWidth < 1024) setIsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 text-[#d4af37] bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/40 font-bold shadow-sm"
+                    title="Navegar diretamente para a Tela Inicial pública do Salão Luxe"
+                  >
+                    <Home size={22} className="shrink-0 text-[#d4af37]" />
+                    {isOpen && (
+                      <span className="font-semibold text-sm whitespace-nowrap">Tela inicial</span>
+                    )}
+                  </button>
+                </li>
+              )}
               {menuItems.map((item) => {
                 const isChat = item.view === 'chat';
                 const hasUnread = isChat && unreadChatCount > 0;

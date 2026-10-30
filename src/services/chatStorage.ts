@@ -146,8 +146,152 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export function getStoredMessages(): ChatMessage[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('chat_messages');
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error('Error reading chat_messages:', err);
+    return [];
+  }
+}
+
+export function getStoredConversationsRaw(): ChatConversation[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('chat_conversations');
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error('Error reading chat_conversations:', err);
+    return [];
+  }
+}
+
 export function broadcastChatUpdate() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('salao-luxe-chat-sync'));
   }
+}
+
+export function sendMessageDirectly(params: {
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'admin' | 'cliente' | 'profissional';
+  recipientId: string;
+  content: string;
+  attachment?: any;
+  participantDetails?: Partial<ChatConversation>;
+}): { newMsg: ChatMessage; conversations: ChatConversation[]; messages: ChatMessage[] } {
+  const timestamp = new Date().toISOString();
+  const isFromAdmin = params.senderRole === 'admin';
+
+  const newMsg: ChatMessage = {
+    id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    conversationId: params.conversationId,
+    senderId: params.senderId,
+    senderName: params.senderName,
+    senderRole: params.senderRole,
+    recipientId: params.recipientId,
+    content: params.content,
+    attachment: params.attachment,
+    status: isFromAdmin ? 'entregue' : 'enviada',
+    timestamp
+  };
+
+  // 1. Save message directly into localStorage
+  const currentMsgs = getStoredMessages();
+  const updatedMsgs = [...currentMsgs, newMsg];
+  localStorage.setItem('chat_messages', JSON.stringify(updatedMsgs));
+
+  // 2. Update conversation metadata
+  const currentConvs = getStoredConversationsRaw();
+  const snippet = params.content || (params.attachment?.type === 'image' ? '📷 Foto anexada' : '📎 Documento anexado');
+
+  const existingIdx = currentConvs.findIndex(c => c.id === params.conversationId);
+  let updatedConvs: ChatConversation[] = [];
+
+  if (existingIdx >= 0) {
+    updatedConvs = [...currentConvs];
+    const prevAdminUnread = updatedConvs[existingIdx].unreadCountAdmin || 0;
+    const prevPartUnread = updatedConvs[existingIdx].unreadCountParticipant || 0;
+
+    updatedConvs[existingIdx] = {
+      ...updatedConvs[existingIdx],
+      ...params.participantDetails,
+      lastMessage: snippet,
+      lastMessageTimestamp: timestamp,
+      unreadCountAdmin: isFromAdmin ? 0 : (prevAdminUnread + 1),
+      unreadCountParticipant: isFromAdmin ? (prevPartUnread + 1) : 0,
+      updatedAt: timestamp
+    };
+  } else {
+    const details = params.participantDetails || {};
+    const newConv: ChatConversation = {
+      id: params.conversationId,
+      type: details.type || (params.senderRole === 'profissional' ? 'profissional' : 'cliente'),
+      participantId: details.participantId || params.senderId,
+      participantName: details.participantName || params.senderName,
+      participantPhone: details.participantPhone,
+      participantWhatsapp: details.participantWhatsapp || details.participantPhone,
+      participantEmail: details.participantEmail,
+      participantPhotoUrl: details.participantPhotoUrl,
+      participantRoleDescription: details.participantRoleDescription || 'Cliente Salão Luxe',
+      lastMessage: snippet,
+      lastMessageTimestamp: timestamp,
+      unreadCountAdmin: isFromAdmin ? 0 : 1,
+      unreadCountParticipant: isFromAdmin ? 1 : 0,
+      isOnline: true,
+      updatedAt: timestamp
+    };
+    updatedConvs = [newConv, ...currentConvs];
+  }
+
+  localStorage.setItem('chat_conversations', JSON.stringify(updatedConvs));
+
+  // 3. Broadcast sync event to all components
+  broadcastChatUpdate();
+
+  return { newMsg, conversations: updatedConvs, messages: updatedMsgs };
+}
+
+export function markConversationAsReadDirectly(conversationId: string, role: 'admin' | 'participant') {
+  if (typeof window === 'undefined') return;
+
+  const currentConvs = getStoredConversationsRaw();
+  const idx = currentConvs.findIndex(c => c.id === conversationId);
+  
+  if (idx >= 0) {
+    const updatedConvs = [...currentConvs];
+    if (role === 'admin') {
+      updatedConvs[idx] = { ...updatedConvs[idx], unreadCountAdmin: 0 };
+    } else {
+      updatedConvs[idx] = { ...updatedConvs[idx], unreadCountParticipant: 0 };
+    }
+    localStorage.setItem('chat_conversations', JSON.stringify(updatedConvs));
+  }
+
+  // Update messages status
+  const currentMsgs = getStoredMessages();
+  let changed = false;
+  const updatedMsgs = currentMsgs.map(m => {
+    if (m.conversationId === conversationId) {
+      if (role === 'admin' && m.senderRole !== 'admin' && m.status !== 'lida') {
+        changed = true;
+        return { ...m, status: 'lida' as const };
+      }
+      if (role === 'participant' && m.senderRole === 'admin' && m.status !== 'lida') {
+        changed = true;
+        return { ...m, status: 'lida' as const };
+      }
+    }
+    return m;
+  });
+
+  if (changed) {
+    localStorage.setItem('chat_messages', JSON.stringify(updatedMsgs));
+  }
+
+  broadcastChatUpdate();
 }

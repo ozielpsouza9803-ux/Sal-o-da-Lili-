@@ -13,19 +13,25 @@ import {
   X,
   ExternalLink,
   MessageCircle,
-  Scissors
+  Scissors,
+  ArrowLeft
 } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { ChatMessage, ChatConversation, ChatAttachment, Client } from '@/src/types';
 import { 
   ADMIN_PARTICIPANT_ID, 
   ADMIN_PARTICIPANT_NAME, 
-  broadcastChatUpdate 
+  sendMessageDirectly,
+  markConversationAsReadDirectly
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { cn } from '@/src/lib/utils';
 
-export const PublicChat: React.FC = () => {
+interface PublicChatProps {
+  onBack?: () => void;
+}
+
+export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
   const [storedConversations, setStoredConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
@@ -49,6 +55,27 @@ export const PublicChat: React.FC = () => {
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Real-time synchronization event listener
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const rawMsgs = localStorage.getItem('chat_messages');
+        if (rawMsgs) setMessages(JSON.parse(rawMsgs));
+        const rawConvs = localStorage.getItem('chat_conversations');
+        if (rawConvs) setStoredConversations(JSON.parse(rawConvs));
+      } catch (err) {
+        console.error('PublicChat sync error:', err);
+      }
+    };
+
+    window.addEventListener('salao-luxe-chat-sync', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('salao-luxe-chat-sync', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [setMessages, setStoredConversations]);
 
   // Filter messages for this public client
   const clientMessages = useMemo(() => {
@@ -78,8 +105,6 @@ export const PublicChat: React.FC = () => {
     const content = (textToSend || inputMessage).trim();
     if (!content && !attachmentPreview) return;
 
-    const timestamp = new Date().toISOString();
-
     let attachmentObj: ChatAttachment | undefined = undefined;
     if (attachmentPreview && selectedFile) {
       attachmentObj = {
@@ -91,8 +116,7 @@ export const PublicChat: React.FC = () => {
       };
     }
 
-    const newMsg: ChatMessage = {
-      id: `msg-pub-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    sendMessageDirectly({
       conversationId: conversationId,
       senderId: publicClient.id,
       senderName: publicClient.name,
@@ -100,46 +124,14 @@ export const PublicChat: React.FC = () => {
       recipientId: ADMIN_PARTICIPANT_ID,
       content: content,
       attachment: attachmentObj,
-      status: 'enviada',
-      timestamp: timestamp
-    };
-
-    // Append to messages
-    setMessages(prev => [...prev, newMsg]);
-
-    // Update conversation metadata for admin panel
-    const snippet = content || (attachmentObj?.type === 'image' ? '📷 Foto enviada pelo cliente' : '📎 Arquivo enviado');
-
-    setStoredConversations(prev => {
-      const idx = prev.findIndex(c => c.id === conversationId);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = {
-          ...copy[idx],
-          lastMessage: snippet,
-          lastMessageTimestamp: timestamp,
-          unreadCountAdmin: (copy[idx].unreadCountAdmin || 0) + 1,
-          updatedAt: timestamp
-        };
-        return copy;
-      } else {
-        const newConv: ChatConversation = {
-          id: conversationId,
-          type: 'cliente',
-          participantId: publicClient.id,
-          participantName: publicClient.name,
-          participantPhone: publicClient.phone,
-          participantEmail: publicClient.email,
-          participantPhotoUrl: publicClient.photoUrl,
-          participantRoleDescription: 'Cliente Salão Luxe',
-          lastMessage: snippet,
-          lastMessageTimestamp: timestamp,
-          unreadCountAdmin: 1,
-          unreadCountParticipant: 0,
-          isOnline: true,
-          updatedAt: timestamp
-        };
-        return [newConv, ...prev];
+      participantDetails: {
+        type: 'cliente',
+        participantId: publicClient.id,
+        participantName: publicClient.name,
+        participantPhone: publicClient.phone,
+        participantEmail: publicClient.email,
+        participantPhotoUrl: publicClient.photoUrl,
+        participantRoleDescription: 'Cliente Salão Luxe'
       }
     });
 
@@ -147,8 +139,6 @@ export const PublicChat: React.FC = () => {
     setInputMessage('');
     setSelectedFile(null);
     setAttachmentPreview(null);
-
-    broadcastChatUpdate();
   };
 
   const handleQuickQuestion = (questionText: string) => {
@@ -160,6 +150,17 @@ export const PublicChat: React.FC = () => {
       {/* Public Chat Header Banner */}
       <div className="bg-gradient-to-r from-[#14120c] via-[#1c1810] to-[#0a0a0a] border border-[#d4af37]/25 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-2.5 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-[#d4af37] border border-white/10 rounded-2xl transition-all flex items-center gap-1.5 text-xs font-bold shrink-0"
+              title="Voltar / Recolher Atendimento"
+            >
+              <ArrowLeft size={18} className="text-[#d4af37]" />
+              <span className="hidden sm:inline">Voltar</span>
+            </button>
+          )}
+
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-extrabold shadow-md shadow-[#d4af37]/20 shrink-0">
             <MessageSquare size={24} />
           </div>
@@ -191,7 +192,7 @@ export const PublicChat: React.FC = () => {
       </div>
 
       {/* Main Chat Box Container */}
-      <div className="bg-[#0e0e0e] border border-[#d4af37]/20 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[580px] relative">
+      <div className="bg-[#0e0e0e] border border-[#d4af37]/20 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[540px] relative">
         {/* Chat Sub-Header */}
         <div className="bg-[#141414] border-b border-white/10 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -347,13 +348,13 @@ export const PublicChat: React.FC = () => {
           className="p-3 bg-[#121212] border-t border-white/10 flex items-center gap-2"
         >
           <label
-            htmlFor="chat-file-upload"
+            htmlFor="chat-file-upload-pub"
             className="p-2.5 text-neutral-400 hover:text-[#d4af37] bg-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition-colors"
             title="Anexar foto ou imagem"
           >
             <ImageIcon size={18} />
             <input
-              id="chat-file-upload"
+              id="chat-file-upload-pub"
               type="file"
               accept="image/*"
               onChange={handleFileChange}
