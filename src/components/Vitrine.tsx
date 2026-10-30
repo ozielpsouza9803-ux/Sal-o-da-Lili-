@@ -60,11 +60,13 @@ import { cn } from '@/src/lib/utils';
 interface VitrineProps {
   onNavigateToAgenda?: () => void;
   onNavigateToProducts?: () => void;
+  isAdmin?: boolean;
 }
 
 export const Vitrine: React.FC<VitrineProps> = ({ 
   onNavigateToAgenda,
-  onNavigateToProducts 
+  onNavigateToProducts,
+  isAdmin = false
 }) => {
   // Persistent showcase collections
   const [banners, setBanners] = useLocalStorage<ShowcaseBanner[]>('showcase_banners', INITIAL_BANNERS);
@@ -183,6 +185,8 @@ export const Vitrine: React.FC<VitrineProps> = ({
     setClients(prev => [...prev, newClient]);
   };
 
+  const currentViewMode = isAdmin ? viewMode : 'preview';
+
   return (
     <div className="space-y-10 relative">
       {/* Toast Notification */}
@@ -195,7 +199,7 @@ export const Vitrine: React.FC<VitrineProps> = ({
         </div>
       )}
 
-      {/* Top Header & View Mode Switcher */}
+      {/* Top Header & View Mode Switcher (Admin Only) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div>
           <div className="flex items-center gap-2">
@@ -207,42 +211,44 @@ export const Vitrine: React.FC<VitrineProps> = ({
             </span>
           </div>
           <p className="text-neutral-400 text-xs sm:text-sm mt-1">
-            Experiência visual luxuosa para apresentação de serviços, produtos, galeria e resultados reais.
+            Apresentação visual de serviços, produtos, galeria de resultados e depoimentos reais.
           </p>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center bg-[#111111] p-1.5 rounded-2xl border border-[#d4af37]/30 shadow-lg">
-          <button
-            onClick={() => setViewMode('preview')}
-            className={cn(
-              "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2",
-              viewMode === 'preview'
-                ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
-                : "text-neutral-400 hover:text-white"
-            )}
-          >
-            <Eye size={16} />
-            <span>Ver Vitrine do Cliente</span>
-          </button>
+        {/* View Mode Toggle (Displayed ONLY for Admin) */}
+        {isAdmin && (
+          <div className="flex items-center bg-[#111111] p-1.5 rounded-2xl border border-[#d4af37]/30 shadow-lg">
+            <button
+              onClick={() => setViewMode('preview')}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2",
+                viewMode === 'preview'
+                  ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <Eye size={16} />
+              <span>Ver Vitrine do Cliente</span>
+            </button>
 
-          <button
-            onClick={() => setViewMode('admin')}
-            className={cn(
-              "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2",
-              viewMode === 'admin'
-                ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
-                : "text-neutral-400 hover:text-white"
-            )}
-          >
-            <Settings2 size={16} />
-            <span>Gerenciador da Vitrine</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setViewMode('admin')}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2",
+                viewMode === 'admin'
+                  ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
+                  : "text-neutral-400 hover:text-white"
+              )}
+            >
+              <Settings2 size={16} />
+              <span>Gerenciador da Vitrine</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* VIEW MODE 1: CLIENT LIVE VITRINE */}
-      {viewMode === 'preview' ? (
+      {currentViewMode === 'preview' ? (
         <div className="space-y-16">
           {/* 1. Promotional Carousel */}
           <section>
