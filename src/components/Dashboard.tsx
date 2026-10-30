@@ -21,9 +21,10 @@ import {
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/src/lib/utils';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { Appointment, Client } from '@/src/types';
+import { Appointment, Client, Order } from '@/src/types';
 import { getInitialAppointments, STATUS_LABELS } from '@/src/services/agendaStorage';
 import { initialClientsList } from '@/src/components/Clients';
+import { getInitialOrders } from '@/src/services/productStorage';
 
 const data = [
   { name: 'Seg', vlr: 4000 },
@@ -63,9 +64,13 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
   const [appointments] = useLocalStorage<Appointment[]>('appointments', getInitialAppointments());
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
+  const [orders] = useLocalStorage<Order[]>('orders', getInitialOrders());
 
   const activeAppointments = appointments.filter(a => a.status !== 'cancelado');
-  const totalRevenue = activeAppointments.reduce((acc, a) => acc + a.totalPrice, 0) + 12000;
+  const serviceRevenue = activeAppointments.reduce((acc, a) => acc + a.totalPrice, 0);
+  const productRevenue = orders.filter(o => o.paymentStatus === 'pago').reduce((acc, o) => acc + o.totalAmount, 0);
+  const totalRevenue = serviceRevenue + productRevenue;
+  const totalPaidSales = orders.filter(o => o.paymentStatus === 'pago').length;
 
   // Upcoming appointments
   const upcomingAppointments = [...appointments]
@@ -116,7 +121,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
         />
         <StatCard 
           title="Vendas" 
-          value="34" 
+          value={String(totalPaidSales || orders.length)} 
           icon={ShoppingBag}
           trend={{ value: 15.7, isPositive: true }}
           color="bg-emerald-600"

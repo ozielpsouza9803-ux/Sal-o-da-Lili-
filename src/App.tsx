@@ -9,10 +9,12 @@ import { Products } from '@/src/components/Products';
 import { Financial } from '@/src/components/Financial';
 import { Settings } from '@/src/components/Settings';
 import { Orders } from '@/src/components/Orders';
+import { Chat } from '@/src/components/Chat';
+import { Vitrine } from '@/src/components/Vitrine';
 import { ComingSoon } from '@/src/components/ComingSoon';
 import { ClientPortalView } from '@/src/components/clients/ClientPortalView';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { Client, Appointment, ClientPurchase, Service, Professional, ViewType } from '@/src/types';
+import { Client, Appointment, ClientPurchase, Service, Professional, ViewType, ChatConversation } from '@/src/types';
 import { getInitialPurchases } from '@/src/services/clientStorage';
 import { getInitialAppointments } from '@/src/services/agendaStorage';
 import { Menu, Search, Bell } from 'lucide-react';
@@ -28,6 +30,9 @@ export default function App() {
   const [services] = useLocalStorage<Service[]>('services', initialServicesList);
   const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
   const [purchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
+  const [chatConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
+
+  const totalUnreadChat = chatConversations.reduce((acc, curr) => acc + (curr.unreadCountAdmin || 0), 0);
 
   const handleBookFromPortal = (newApp: Appointment) => {
     setAppointments(prev => [newApp, ...prev]);
@@ -72,9 +77,14 @@ export default function App() {
       case 'financeiro':
         return <Financial />;
       case 'chat':
-        return <ComingSoon title="Chat" />;
+        return <Chat />;
       case 'vitrine':
-        return <ComingSoon title="Vitrine" />;
+        return (
+          <Vitrine
+            onNavigateToAgenda={() => setCurrentView('agenda')}
+            onNavigateToProducts={() => setCurrentView('produtos')}
+          />
+        );
       case 'configuracoes':
         return <Settings />;
       default:
@@ -117,9 +127,19 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="relative p-2 text-neutral-400 hover:text-[#d4af37] transition-colors">
+            <button 
+              onClick={() => setCurrentView('chat')}
+              className="relative p-2 text-neutral-400 hover:text-[#d4af37] transition-colors"
+              title="Abrir Chat e Mensagens"
+            >
               <Bell size={24} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#050505]" />
+              {totalUnreadChat > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 px-1.5 py-0.2 bg-rose-500 text-white text-[10px] font-bold rounded-full border-2 border-[#050505]">
+                  {totalUnreadChat}
+                </span>
+              ) : (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full border-2 border-[#050505]" />
+              )}
             </button>
             <div className="h-8 w-[1px] bg-white/10 mx-2" />
             <div className="flex items-center gap-3">

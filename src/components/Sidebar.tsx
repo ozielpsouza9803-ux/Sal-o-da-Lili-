@@ -16,7 +16,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
-import { ViewType } from '@/src/types';
+import { ViewType, ChatConversation } from '@/src/types';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -41,6 +42,9 @@ const menuItems: { icon: React.ElementType; label: string; view: ViewType; isPor
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen, setIsOpen }) => {
+  const [conversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
+  const unreadChatCount = conversations.reduce((acc, curr) => acc + (curr.unreadCountAdmin || 0), 0);
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -78,27 +82,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isO
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4">
             <ul className="space-y-2 px-3">
-              {menuItems.map((item) => (
-                <li key={item.view}>
-                  <button
-                    onClick={() => {
-                      onViewChange(item.view);
-                      if (window.innerWidth < 1024) setIsOpen(false);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group",
-                      currentView === item.view 
-                        ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20" 
-                        : item.isPortal
-                          ? "text-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/25 font-bold"
-                          : "text-neutral-400 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
-                    )}
-                  >
-                    <item.icon size={24} />
-                    {isOpen && <span className="font-medium whitespace-nowrap">{item.label}</span>}
-                  </button>
-                </li>
-              ))}
+              {menuItems.map((item) => {
+                const isChat = item.view === 'chat';
+                const hasUnread = isChat && unreadChatCount > 0;
+
+                return (
+                  <li key={item.view}>
+                    <button
+                      onClick={() => {
+                        onViewChange(item.view);
+                        if (window.innerWidth < 1024) setIsOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group relative",
+                        currentView === item.view 
+                          ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20" 
+                          : item.isPortal
+                            ? "text-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/25 font-bold"
+                            : "text-neutral-400 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
+                      )}
+                    >
+                      <div className="relative">
+                        <item.icon size={24} />
+                        {hasUnread && !isOpen && (
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#0a0a0a]" />
+                        )}
+                      </div>
+                      {isOpen && (
+                        <div className="flex items-center justify-between flex-1 min-w-0">
+                          <span className="font-medium whitespace-nowrap">{item.label}</span>
+                          {hasUnread && (
+                            <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                              {unreadChatCount}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 

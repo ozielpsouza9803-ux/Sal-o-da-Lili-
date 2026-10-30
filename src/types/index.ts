@@ -37,6 +37,8 @@ export interface Service {
   category: string;
   price: number;
   duration: number; // in minutes
+  imageUrl?: string;
+  description?: string;
 }
 
 export type ClientStatus = 'ativo' | 'bloqueado' | 'inativo';
@@ -112,6 +114,8 @@ export interface Appointment {
   totalDuration: number; // minutes
   totalPrice: number; // BRL
   status: AppointmentStatus;
+  paymentStatus?: 'pago' | 'pendente' | 'cancelado';
+  paymentMethod?: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro';
   notes?: string;
   cancellationReason?: string;
   rescheduleHistory?: RescheduleRecord[];
@@ -216,4 +220,237 @@ export interface Order {
   date: string; // YYYY-MM-DD
   createdAt: string;
   notes?: string;
+}
+
+// ----------------------------------------------------
+// FINANCEIRO, DESPESAS, FLUXO DE CAIXA E PAGAMENTOS
+// ----------------------------------------------------
+
+export type ExpenseCategory = 
+  | 'aluguel' 
+  | 'produtos' 
+  | 'comissao' 
+  | 'energia_agua' 
+  | 'marketing' 
+  | 'manutencao' 
+  | 'impostos' 
+  | 'salarios' 
+  | 'outros';
+
+export type ExpenseStatus = 'paga' | 'pendente' | 'vencida';
+
+export type FinancialPaymentMethod = 
+  | 'pix' 
+  | 'cartao_credito' 
+  | 'cartao_debito' 
+  | 'dinheiro' 
+  | 'boleto' 
+  | 'transferencia';
+
+export interface Expense {
+  id: string;
+  description: string;
+  category: ExpenseCategory;
+  amount: number;
+  dueDate: string; // YYYY-MM-DD
+  paymentDate?: string; // YYYY-MM-DD
+  status: ExpenseStatus;
+  supplierId?: string;
+  supplierName?: string;
+  isRecurring?: boolean;
+  recurrenceInterval?: 'mensal' | 'anual' | 'semanal';
+  paymentMethod?: FinancialPaymentMethod;
+  notes?: string;
+  receiptNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  type: 'receita' | 'despesa';
+  origin: 'servico' | 'produto' | 'despesa_avulsa' | 'comissao';
+  referenceId?: string; // appointmentId, orderId, or expenseId
+  description: string;
+  category: string;
+  amount: number;
+  cost?: number; // Custo de aquisição do produto ou comissão
+  date: string; // YYYY-MM-DD
+  paymentMethod: FinancialPaymentMethod;
+  paymentStatus: 'pago' | 'pendente' | 'cancelado' | 'estornado';
+  clientOrRecipientName?: string;
+  professionalId?: string;
+  professionalName?: string;
+  createdAt: string;
+}
+
+export interface ProfessionalCommission {
+  id: string;
+  appointmentId: string;
+  professionalId: string;
+  professionalName: string;
+  clientName: string;
+  serviceNames: string[];
+  servicePrice: number;
+  commissionRate: number; // ex: 50%
+  commissionAmount: number;
+  date: string; // YYYY-MM-DD
+  status: 'pendente' | 'pago';
+  paidAt?: string;
+  paymentMethod?: FinancialPaymentMethod;
+  expenseId?: string; // reference to expense created when paid
+}
+
+export interface PixConfig {
+  keyType: 'cnpj' | 'cpf' | 'email' | 'telefone' | 'aleatoria';
+  key: string;
+  receiverName: string;
+  receiverCity: string;
+  postalCode?: string;
+  gatewayProvider: 'manual' | 'mercadopago' | 'asaas' | 'inter' | 'gerencianet';
+  autoWebhookEnabled: boolean;
+  webhookSecret: string;
+  webhookEndpoint: string;
+}
+
+export interface PixWebhookLog {
+  id: string;
+  timestamp: string;
+  event: string;
+  txid: string;
+  amount: number;
+  senderName?: string;
+  status: 'processado' | 'erro' | 'ignorado';
+  payloadSummary: string;
+}
+
+export interface PixCharge {
+  txid: string;
+  amount: number;
+  description: string;
+  clientName: string;
+  referenceType: 'servico' | 'produto' | 'avulso';
+  referenceId?: string;
+  brCode: string;
+  qrCodeDataUrl: string;
+  status: 'pendente' | 'pago' | 'expirado';
+  createdAt: string;
+  expiresAt: string;
+  paidAt?: string;
+  endToEndId?: string;
+}
+
+// ----------------------------------------------------
+// CHAT INTEGRADO
+// ----------------------------------------------------
+export type ChatParticipantType = 'cliente' | 'profissional' | 'admin';
+export type MessageStatus = 'enviada' | 'entregue' | 'lida';
+
+export interface ChatAttachment {
+  id: string;
+  url: string; // data url or image link
+  name: string;
+  type: 'image' | 'file';
+  sizeFormatted?: string;
+  mimeType?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string; // 'admin-luxe', client.id, or professional.id
+  senderName: string;
+  senderRole: ChatParticipantType;
+  senderPhotoUrl?: string;
+  recipientId: string;
+  content: string;
+  attachment?: ChatAttachment;
+  status: MessageStatus;
+  timestamp: string; // ISO
+}
+
+export interface ChatConversation {
+  id: string;
+  type: 'cliente' | 'profissional';
+  participantId: string;
+  participantName: string;
+  participantPhone?: string;
+  participantWhatsapp?: string;
+  participantEmail?: string;
+  participantPhotoUrl?: string;
+  participantRoleDescription?: string;
+  lastMessage?: string;
+  lastMessageTimestamp?: string;
+  unreadCountAdmin: number;
+  unreadCountParticipant: number;
+  isOnline?: boolean;
+  notes?: string;
+  updatedAt: string;
+}
+
+export interface QuickReply {
+  id: string;
+  title: string;
+  shortcut: string;
+  content: string;
+  category: 'agendamento' | 'atendimento' | 'equipe' | 'informacoes';
+}
+
+// ----------------------------------------------------
+// VITRINE DIGITAL
+// ----------------------------------------------------
+export type ShowcaseCategory = 'cabelo' | 'barba' | 'unhas' | 'estetica' | 'maquiagem';
+
+export interface ShowcaseBanner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  badge?: string; // ex: "Exclusivo", "Destaque", "Promoção"
+  imageUrl: string;
+  videoUrl?: string;
+  ctaText: string;
+  ctaAction: 'agendar' | 'produtos' | 'servicos' | 'link';
+  ctaLink?: string;
+  order: number;
+  published: boolean;
+  createdAt: string;
+}
+
+export interface ShowcaseGalleryItem {
+  id: string;
+  title: string;
+  category: 'ambiente' | 'equipe' | 'procedimentos' | 'espaco_vip';
+  imageUrl: string;
+  videoUrl?: string;
+  caption?: string;
+  order: number;
+  published: boolean;
+  createdAt: string;
+}
+
+export interface ShowcaseBeforeAfter {
+  id: string;
+  title: string;
+  category: ShowcaseCategory;
+  serviceName: string;
+  professionalName?: string;
+  beforeImageUrl: string;
+  afterImageUrl: string;
+  description: string;
+  order: number;
+  published: boolean;
+  createdAt: string;
+}
+
+export interface ShowcaseTestimonial {
+  id: string;
+  clientName: string;
+  clientPhotoUrl?: string;
+  rating: number; // 1 to 5
+  comment: string;
+  serviceOrProduct: string;
+  date: string; // YYYY-MM-DD
+  verified: boolean;
+  published: boolean;
 }
