@@ -16,9 +16,14 @@ import {
   Calendar, 
   ShoppingBag,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Clock
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/src/lib/utils';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
+import { Appointment, Client } from '@/src/types';
+import { getInitialAppointments, STATUS_LABELS } from '@/src/services/agendaStorage';
+import { initialClientsList } from '@/src/components/Clients';
 
 const data = [
   { name: 'Seg', vlr: 4000 },
@@ -51,7 +56,26 @@ const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
   </div>
 );
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigateToAgenda?: () => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
+  const [appointments] = useLocalStorage<Appointment[]>('appointments', getInitialAppointments());
+  const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
+
+  const activeAppointments = appointments.filter(a => a.status !== 'cancelado');
+  const totalRevenue = activeAppointments.reduce((acc, a) => acc + a.totalPrice, 0) + 12000;
+
+  // Upcoming appointments
+  const upcomingAppointments = [...appointments]
+    .filter(a => a.status !== 'cancelado')
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.startTime.localeCompare(b.startTime);
+    })
+    .slice(0, 5);
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
@@ -71,23 +95,23 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Faturamento" 
-          value={formatCurrency(12450.80)} 
+          value={formatCurrency(totalRevenue)} 
           icon={TrendingUp}
           trend={{ value: 12.5, isPositive: true }}
           color="bg-amber-600"
         />
         <StatCard 
-          title="Novos Clientes" 
-          value="48" 
+          title="Clientes Ativos" 
+          value={String(clients.length)} 
           icon={Users}
           trend={{ value: 8.2, isPositive: true }}
           color="bg-blue-600"
         />
         <StatCard 
           title="Agendamentos" 
-          value="156" 
+          value={String(activeAppointments.length)} 
           icon={Calendar}
-          trend={{ value: 2.4, isPositive: false }}
+          trend={{ value: 2.4, isPositive: true }}
           color="bg-purple-600"
         />
         <StatCard 
@@ -147,28 +171,60 @@ export const Dashboard: React.FC = () => {
         <div className="bg-[#111111] border border-[#d4af37]/10 p-6 rounded-2xl">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-white">Próximos Agendamentos</h2>
-            <button className="text-xs font-medium text-[#d4af37] hover:underline">Ver tudo</button>
+            {onNavigateToAgenda && (
+              <button 
+                onClick={onNavigateToAgenda}
+                className="text-xs font-bold text-[#d4af37] hover:underline"
+              >
+                Abrir Agenda
+              </button>
+            )}
           </div>
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((item) => (
-              <div key={item} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-[#d4af37] font-bold">
-                    {item === 1 ? 'JS' : item === 2 ? 'MC' : 'PL'}
+          <div className="space-y-3">
+            {upcomingAppointments.map((app) => {
+              const statusInfo = STATUS_LABELS[app.status] || STATUS_LABELS.confirmado;
+              const initials = app.clientName.split(' ').map(n => n[0]).slice(0, 2).join('');
+
+              return (
+                <div 
+                  key={app.id} 
+                  onClick={onNavigateToAgenda}
+                  className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-[#d4af37]/30 hover:bg-white/10 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-[#d4af37] font-bold text-xs">
+                      {initials}
+                    </div>
+                    <div>
+                      <h4 className="text-white text-sm font-semibold group-hover:text-[#d4af37] transition-colors">
+                        {app.clientName}
+                      </h4>
+                      <p className="text-neutral-400 text-xs">
+                        {app.serviceNames.join(' + ')} • <span className="text-neutral-500">{app.professionalName}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-white text-sm font-medium">
-                      {item === 1 ? 'Julia Santos' : item === 2 ? 'Marcos Costa' : 'Paula Lima'}
-                    </h4>
-                    <p className="text-neutral-500 text-xs">Corte de Cabelo + Escova</p>
+                  <div className="text-right">
+                    <p className="text-white text-xs font-bold flex items-center gap-1 justify-end">
+                      <Clock size={12} className="text-[#d4af37]" />
+                      {app.startTime} ({app.date})
+                    </p>
+                    <span className={cn(
+                      "text-[10px] font-bold uppercase",
+                      statusInfo.text
+                    )}>
+                      {statusInfo.label}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-white text-sm font-medium">14:30</p>
-                  <p className="text-[#d4af37] text-xs font-medium">Confirmado</p>
-                </div>
+              );
+            })}
+
+            {upcomingAppointments.length === 0 && (
+              <div className="py-12 text-center text-neutral-500 text-xs">
+                Nenhum agendamento futuro no momento.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

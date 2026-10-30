@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Search, Package, ShoppingCart, AlertCircle, Edit2, Trash2, Tag, Image as ImageIcon } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { formatCurrency } from '@/src/lib/utils';
+import { formatCurrency, cn } from '@/src/lib/utils';
 
 interface Product {
   id: string;

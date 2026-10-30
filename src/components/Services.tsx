@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Search, MoreVertical, Edit2, Trash2, Clock, DollarSign, Tag } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Clock, DollarSign, Tag } from 'lucide-react';
 import { cn, formatCurrency } from '@/src/lib/utils';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { Service } from '@/src/types';
 
-const mockServices: Service[] = [
+export const initialServicesList: Service[] = [
   { id: '1', name: 'Corte Masculino', category: 'Cabelo', price: 60, duration: 30 },
   { id: '2', name: 'Corte Feminino', category: 'Cabelo', price: 120, duration: 60 },
   { id: '3', name: 'Barba Terapia', category: 'Barba', price: 45, duration: 30 },
@@ -12,14 +13,77 @@ const mockServices: Service[] = [
 ];
 
 export const Services: React.FC = () => {
-  const [services, setServices] = useState<Service[]>(mockServices);
+  const [services, setServices] = useLocalStorage<Service[]>('services', initialServicesList);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
-  const filteredServices = services.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Form states
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('Cabelo');
+  const [duration, setDuration] = useState('30');
+  const [price, setPrice] = useState('60');
+
+  const openNewModal = () => {
+    setEditingService(null);
+    setName('');
+    setCategory('Cabelo');
+    setDuration('30');
+    setPrice('60');
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (service: Service) => {
+    setEditingService(service);
+    setName(service.name);
+    setCategory(service.category);
+    setDuration(String(service.duration));
+    setPrice(String(service.price));
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este serviço?')) {
+      setServices(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const parsedPrice = parseFloat(price.replace(',', '.')) || 0;
+    const parsedDuration = parseInt(duration, 10) || 30;
+
+    if (editingService) {
+      setServices(prev => prev.map(s => 
+        s.id === editingService.id 
+          ? { ...s, name: name.trim(), category, price: parsedPrice, duration: parsedDuration } 
+          : s
+      ));
+    } else {
+      const newService: Service = {
+        id: 'srv-' + Date.now(),
+        name: name.trim(),
+        category,
+        price: parsedPrice,
+        duration: parsedDuration,
+      };
+      setServices(prev => [...prev, newService]);
+    }
+
+    setIsModalOpen(false);
+  };
+
+  const categories = ['Todas', ...Array.from(new Set(services.map(s => s.category)))];
+
+  const filteredServices = services.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'Todas' || s.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -29,7 +93,7 @@ export const Services: React.FC = () => {
           <p className="text-neutral-400 mt-1">Gerencie seu catálogo de serviços e especialidades.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openNewModal}
           className="flex items-center gap-2 bg-[#d4af37] text-black px-6 py-3 rounded-xl font-bold hover:bg-[#d4af37]/90 transition-all shadow-lg shadow-[#d4af37]/10"
         >
           <Plus size={20} />
@@ -48,11 +112,14 @@ export const Services: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select className="bg-[#111111] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#d4af37]/50 transition-colors">
-          <option>Todas Categorias</option>
-          <option>Cabelo</option>
-          <option>Barba</option>
-          <option>Estética</option>
+        <select 
+          className="bg-[#111111] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#d4af37]/50 transition-colors"
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+        >
+          {categories.map(c => (
+            <option key={c} value={c}>{c === 'Todas' ? 'Todas Categorias' : c}</option>
+          ))}
         </select>
       </div>
 
@@ -94,16 +161,31 @@ export const Services: React.FC = () => {
                   </td>
                   <td className="px-6 py-5 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="p-2 text-neutral-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-lg transition-all">
+                      <button 
+                        onClick={() => openEditModal(service)}
+                        className="p-2 text-neutral-400 hover:text-[#d4af37] hover:bg-[#d4af37]/10 rounded-lg transition-all"
+                        title="Editar Serviço"
+                      >
                         <Edit2 size={18} />
                       </button>
-                      <button className="p-2 text-neutral-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all">
+                      <button 
+                        onClick={() => handleDelete(service.id)}
+                        className="p-2 text-neutral-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all"
+                        title="Excluir Serviço"
+                      >
                         <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {filteredServices.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-neutral-500">
+                    Nenhum serviço encontrado.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -113,15 +195,22 @@ export const Services: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-[#0a0a0a] border border-[#d4af37]/30 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-8">
-              <h3 className="text-2xl font-bold text-white mb-2">Novo Serviço</h3>
-              <p className="text-neutral-400 mb-8">Preencha os dados abaixo para cadastrar um novo serviço.</p>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {editingService ? 'Editar Serviço' : 'Novo Serviço'}
+              </h3>
+              <p className="text-neutral-400 mb-8">
+                {editingService ? 'Atualize as informações do serviço.' : 'Preencha os dados abaixo para cadastrar um novo serviço.'}
+              </p>
               
-              <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); setIsModalOpen(false); }}>
+              <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-neutral-300">Nome do Serviço</label>
+                  <label className="text-sm font-medium text-neutral-300">Nome do Serviço *</label>
                   <input 
                     type="text" 
                     placeholder="Ex: Corte Premium"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#d4af37]/50"
                   />
                 </div>
@@ -129,27 +218,44 @@ export const Services: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-300">Categoria</label>
-                    <select className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#d4af37]/50">
-                      <option>Cabelo</option>
-                      <option>Barba</option>
-                      <option>Estética</option>
+                    <select 
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full bg-[#111111] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#d4af37]/50"
+                    >
+                      <option value="Cabelo">Cabelo</option>
+                      <option value="Barba">Barba</option>
+                      <option value="Química">Química</option>
+                      <option value="Finalização">Finalização</option>
+                      <option value="Estética">Estética</option>
+                      <option value="Manicure">Manicure</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-neutral-300">Duração (min)</label>
+                    <label className="text-sm font-medium text-neutral-300">Duração (min) *</label>
                     <input 
                       type="number" 
                       placeholder="30"
+                      min={10}
+                      step={5}
+                      required
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#d4af37]/50"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-neutral-300">Preço (R$)</label>
+                  <label className="text-sm font-medium text-neutral-300">Preço (R$) *</label>
                   <input 
                     type="number" 
-                    placeholder="0,00"
+                    placeholder="60.00"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#d4af37]/50"
                   />
                 </div>
@@ -166,7 +272,7 @@ export const Services: React.FC = () => {
                     type="submit"
                     className="flex-1 bg-[#d4af37] text-black px-6 py-3 rounded-xl font-bold hover:bg-[#d4af37]/90 transition-all"
                   >
-                    Cadastrar
+                    {editingService ? 'Salvar Alterações' : 'Cadastrar'}
                   </button>
                 </div>
               </form>

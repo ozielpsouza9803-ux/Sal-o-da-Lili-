@@ -12,7 +12,8 @@ import {
   Image as ImageIcon, 
   Settings,
   Menu,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { ViewType } from '@/src/types';
@@ -24,7 +25,7 @@ interface SidebarProps {
   setIsOpen: (isOpen: boolean) => void;
 }
 
-const menuItems: { icon: React.ElementType; label: string; view: ViewType }[] = [
+const menuItems: { icon: React.ElementType; label: string; view: ViewType; isPortal?: boolean }[] = [
   { icon: LayoutDashboard, label: 'Início', view: 'dashboard' },
   { icon: Calendar, label: 'Agenda', view: 'agenda' },
   { icon: Users, label: 'Profissionais', view: 'profissionais' },
@@ -36,6 +37,7 @@ const menuItems: { icon: React.ElementType; label: string; view: ViewType }[] = 
   { icon: MessageSquare, label: 'Chat', view: 'chat' },
   { icon: ImageIcon, label: 'Vitrine', view: 'vitrine' },
   { icon: Settings, label: 'Configurações', view: 'configuracoes' },
+  { icon: Sparkles, label: 'Área do Cliente', view: 'area_cliente', isPortal: true },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen, setIsOpen }) => {
@@ -86,8 +88,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isO
                     className={cn(
                       "w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group",
                       currentView === item.view 
-                        ? "bg-[#d4af37] text-black" 
-                        : "text-neutral-400 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
+                        ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20" 
+                        : item.isPortal
+                          ? "text-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/25 font-bold"
+                          : "text-neutral-400 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
                     )}
                   >
                     <item.icon size={24} />

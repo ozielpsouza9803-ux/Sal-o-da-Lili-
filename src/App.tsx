@@ -1,25 +1,41 @@
 import { useState } from 'react';
 import { Sidebar } from '@/src/components/Sidebar';
 import { Dashboard } from '@/src/components/Dashboard';
-import { Services } from '@/src/components/Services';
-import { Professionals } from '@/src/components/Professionals';
-import { Clients } from '@/src/components/Clients';
+import { Services, initialServicesList } from '@/src/components/Services';
+import { Professionals, initialProfessionalsList } from '@/src/components/Professionals';
+import { Clients, initialClientsList } from '@/src/components/Clients';
 import { Agenda } from '@/src/components/Agenda';
 import { Products } from '@/src/components/Products';
 import { Financial } from '@/src/components/Financial';
 import { Settings } from '@/src/components/Settings';
 import { ComingSoon } from '@/src/components/ComingSoon';
-import { ViewType } from '@/src/types';
+import { ClientPortalView } from '@/src/components/clients/ClientPortalView';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
+import { Client, Appointment, ClientPurchase, Service, Professional, ViewType } from '@/src/types';
+import { getInitialPurchases } from '@/src/services/clientStorage';
+import { getInitialAppointments } from '@/src/services/agendaStorage';
 import { Menu, Search, Bell } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [portalClient, setPortalClient] = useState<Client | null>(null);
+
+  // Shared state for client portal synchronization
+  const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
+  const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', getInitialAppointments());
+  const [services] = useLocalStorage<Service[]>('services', initialServicesList);
+  const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
+  const [purchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
+
+  const handleBookFromPortal = (newApp: Appointment) => {
+    setAppointments(prev => [newApp, ...prev]);
+  };
 
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigateToAgenda={() => setCurrentView('agenda')} />;
       case 'servicos':
         return <Services />;
       case 'agenda':
@@ -27,7 +43,27 @@ export default function App() {
       case 'profissionais':
         return <Professionals />;
       case 'clientes':
-        return <Clients />;
+        return (
+          <Clients 
+            onOpenClientPortal={(client) => {
+              setPortalClient(client);
+              setCurrentView('area_cliente');
+            }} 
+          />
+        );
+      case 'area_cliente':
+        return (
+          <ClientPortalView 
+            initialClient={portalClient}
+            clients={clients}
+            appointments={appointments}
+            services={services}
+            professionals={professionals}
+            purchases={purchases}
+            onBackToAdmin={() => setCurrentView('clientes')}
+            onBookAppointment={handleBookFromPortal}
+          />
+        );
       case 'produtos':
         return <Products />;
       case 'pedidos':
@@ -49,7 +85,12 @@ export default function App() {
     <div className="min-h-screen bg-[#050505] text-white flex">
       <Sidebar 
         currentView={currentView} 
-        onViewChange={setCurrentView}
+        onViewChange={(view) => {
+          if (view === 'area_cliente') {
+            setPortalClient(clients[0] || null);
+          }
+          setCurrentView(view);
+        }}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
       />
