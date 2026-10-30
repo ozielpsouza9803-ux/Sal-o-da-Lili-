@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { Sidebar } from '@/src/components/Sidebar';
 import { Dashboard } from '@/src/components/Dashboard';
 import { Services } from '@/src/components/Services';
+import { Professionals } from '@/src/components/Professionals';
+import { Clients } from '@/src/components/Clients';
+import { Agenda } from '@/src/components/Agenda';
+import { Products } from '@/src/components/Products';
+import { Financial } from '@/src/components/Financial';
+import { Settings } from '@/src/components/Settings';
 import { ComingSoon } from '@/src/components/ComingSoon';
 import { ViewType } from '@/src/types';
 import { Menu, Search, Bell } from 'lucide-react';
@@ -17,23 +23,23 @@ export default function App() {
       case 'servicos':
         return <Services />;
       case 'agenda':
-        return <ComingSoon title="Agenda" />;
+        return <Agenda />;
       case 'profissionais':
-        return <ComingSoon title="Profissionais" />;
+        return <Professionals />;
       case 'clientes':
-        return <ComingSoon title="Clientes" />;
+        return <Clients />;
       case 'produtos':
-        return <ComingSoon title="Produtos" />;
+        return <Products />;
       case 'pedidos':
         return <ComingSoon title="Pedidos" />;
       case 'financeiro':
-        return <ComingSoon title="Financeiro" />;
+        return <Financial />;
       case 'chat':
         return <ComingSoon title="Chat" />;
       case 'vitrine':
         return <ComingSoon title="Vitrine" />;
       case 'configuracoes':
-        return <ComingSoon title="Configurações" />;
+        return <Settings />;
       default:
         return <Dashboard />;
     }
