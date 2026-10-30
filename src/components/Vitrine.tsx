@@ -26,7 +26,9 @@ import {
   Professional,
   Appointment,
   ProfessionalAbsence,
-  Order
+  Order,
+  StockMovement,
+  ClientPurchase
 } from '@/src/types';
 import { 
   INITIAL_BANNERS, 
@@ -35,8 +37,13 @@ import {
   INITIAL_TESTIMONIALS 
 } from '@/src/services/vitrineStorage';
 import { initialServicesList } from '@/src/components/Services';
-import { getInitialProducts, getInitialOrders } from '@/src/services/productStorage';
-import { initialClientsList } from '@/src/components/Clients';
+import { 
+  getInitialProducts, 
+  getInitialOrders, 
+  getInitialStockMovements, 
+  processOrderSale 
+} from '@/src/services/productStorage';
+import { getInitialClients, getInitialPurchases } from '@/src/services/clientStorage';
 import { initialProfessionalsList } from '@/src/components/Professionals';
 import { getInitialAppointments, getInitialAbsences } from '@/src/services/agendaStorage';
 import { BannerCarousel } from './vitrine/BannerCarousel';
@@ -69,11 +76,13 @@ export const Vitrine: React.FC<VitrineProps> = ({
   // System persistent entities
   const [services] = useLocalStorage<Service[]>('services', initialServicesList);
   const [products, setProducts] = useLocalStorage<Product[]>('products', getInitialProducts());
-  const [clients, setClients] = useLocalStorage<Client[]>('clients', initialClientsList);
+  const [clients, setClients] = useLocalStorage<Client[]>('clients', getInitialClients());
   const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', getInitialAppointments());
   const [absences] = useLocalStorage<ProfessionalAbsence[]>('absences', getInitialAbsences());
   const [orders, setOrders] = useLocalStorage<Order[]>('orders', getInitialOrders());
+  const [stockMovements, setStockMovements] = useLocalStorage<StockMovement[]>('stock_movements', getInitialStockMovements());
+  const [clientPurchases, setClientPurchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
 
   // View switch: Customer live preview vs Admin Manager
   const [viewMode, setViewMode] = useState<'preview' | 'admin'>('preview');
@@ -146,9 +155,21 @@ export const Vitrine: React.FC<VitrineProps> = ({
     setIsQuickBuyOpen(true);
   };
 
-  const handleConfirmOrder = (newOrder: Order, updatedProduct: Product) => {
-    setOrders(prev => [newOrder, ...prev]);
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+  const handleConfirmOrder = (newOrder: Order) => {
+    const result = processOrderSale({
+      order: newOrder,
+      products,
+      stockMovements,
+      clientPurchases,
+      clients,
+      performedBy: 'Checkout Vitrine Digital'
+    });
+
+    setOrders(prev => [result.order, ...prev]);
+    setProducts(result.products);
+    setStockMovements(result.stockMovements);
+    setClientPurchases(result.clientPurchases);
+    setClients(result.clients);
     showToast(`Pedido #${newOrder.id.slice(-6)} confirmado com sucesso!`);
   };
 

@@ -1,4 +1,4 @@
-import { Product, Supplier, StockMovement, Order } from '@/src/types';
+import { Product, Supplier, StockMovement, Order, Client, ClientPurchase } from '@/src/types';
 
 export function getInitialSuppliers(): Supplier[] {
   return [
@@ -301,3 +301,99 @@ export const PRODUCT_CATEGORIES = [
   'Acessórios',
   'Perfumaria',
 ];
+
+/**
+  Processes a new order atomically across products, stock movements, client purchases and client totals.
+ */
+export function processOrderSale(params: {
+  order: Order;
+  products: Product[];
+  stockMovements: StockMovement[];
+  clientPurchases: ClientPurchase[];
+  clients: Client[];
+  performedBy?: string;
+}) {
+  const { order, products, stockMovements, clientPurchases, clients, performedBy = 'PDV Salão Luxe' } = params;
+
+  let updatedProducts = [...products];
+  const newMovements: StockMovement[] = [];
+  let updatedOrder = { ...order };
+
+  if (order.paymentStatus === 'pago' && !order.stockDeducted) {
+    updatedOrder.stockDeducted = true;
+
+    // 1. Deduct stock and increment salesCount
+    order.items.forEach(item => {
+      const idx = updatedProducts.findIndex(p => p.id === item.productId);
+      if (idx !== -1) {
+        const prod = updatedProducts[idx];
+        const prevStock = prod.stock;
+        const newStock = Math.max(0, prevStock - item.quantity);
+
+        updatedProducts[idx] = {
+          ...prod,
+          stock: newStock,
+          salesCount: (prod.salesCount || 0) + item.quantity,
+          updatedAt: new Date().toISOString(),
+        };
+
+        newMovements.push({
+          id: `mov-${Date.now()}-${item.productId}`,
+          productId: item.productId,
+          productName: item.productName,
+          type: 'venda',
+          quantity: item.quantity,
+          previousStock: prevStock,
+          newStock,
+          reason: `Venda Pedido #${order.id} - ${order.clientName}`,
+          date: new Date().toISOString(),
+          performedBy,
+          orderId: order.id,
+        });
+      }
+    });
+  }
+
+  // 2. Add client purchase and update client totalSpent if paid and valid client
+  let updatedPurchases = [...clientPurchases];
+  let updatedClients = [...clients];
+
+  if (order.paymentStatus === 'pago' && order.clientId && order.clientId !== 'balcao' && order.clientId !== 'guest') {
+    const existingPurchaseIndex = updatedPurchases.findIndex(p => p.id === `cp-${order.id}`);
+    if (existingPurchaseIndex === -1) {
+      const newPurchase: ClientPurchase = {
+        id: `cp-${order.id}`,
+        clientId: order.clientId,
+        date: order.date,
+        description: order.items.map(i => `${i.quantity}x ${i.productName}`).join(', '),
+        category: 'produto',
+        amount: order.totalAmount,
+        paymentMethod: order.paymentMethod,
+        status: 'pago',
+        invoiceNumber: `PED-${order.id}`,
+      };
+      updatedPurchases = [newPurchase, ...updatedPurchases];
+    }
+
+    updatedClients = updatedClients.map(c => {
+      if (c.id === order.clientId) {
+        return {
+          ...c,
+          totalSpent: (c.totalSpent || 0) + order.totalAmount,
+          lastVisit: order.date,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return c;
+    });
+  }
+
+  return {
+    order: updatedOrder,
+    products: updatedProducts,
+    stockMovements: [...newMovements, ...stockMovements],
+    clientPurchases: updatedPurchases,
+    clients: updatedClients,
+  };
+}
+

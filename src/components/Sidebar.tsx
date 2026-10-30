@@ -18,6 +18,9 @@ import {
 import { cn } from '@/src/lib/utils';
 import { ViewType, ChatConversation } from '@/src/types';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
+import { getInitialConversations } from '@/src/services/chatStorage';
+import { initialClientsList } from '@/src/components/Clients';
+import { initialProfessionalsList } from '@/src/components/Professionals';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -42,7 +45,10 @@ const menuItems: { icon: React.ElementType; label: string; view: ViewType; isPor
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen, setIsOpen }) => {
-  const [conversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
+  const [conversations] = useLocalStorage<ChatConversation[]>(
+    'chat_conversations', 
+    getInitialConversations(initialClientsList, initialProfessionalsList)
+  );
   const unreadChatCount = conversations.reduce((acc, curr) => acc + (curr.unreadCountAdmin || 0), 0);
 
   return (

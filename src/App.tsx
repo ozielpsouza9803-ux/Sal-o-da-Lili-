@@ -17,6 +17,7 @@ import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { Client, Appointment, ClientPurchase, Service, Professional, ViewType, ChatConversation } from '@/src/types';
 import { getInitialPurchases } from '@/src/services/clientStorage';
 import { getInitialAppointments } from '@/src/services/agendaStorage';
+import { getInitialConversations } from '@/src/services/chatStorage';
 import { Menu, Search, Bell } from 'lucide-react';
 
 export default function App() {
@@ -30,7 +31,10 @@ export default function App() {
   const [services] = useLocalStorage<Service[]>('services', initialServicesList);
   const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
   const [purchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
-  const [chatConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
+  const [chatConversations] = useLocalStorage<ChatConversation[]>(
+    'chat_conversations', 
+    getInitialConversations(initialClientsList, initialProfessionalsList)
+  );
 
   const totalUnreadChat = chatConversations.reduce((acc, curr) => acc + (curr.unreadCountAdmin || 0), 0);
 

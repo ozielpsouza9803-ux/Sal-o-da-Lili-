@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { formatCurrency, cn } from '@/src/lib/utils';
-import { Order, OrderPaymentStatus, Product, StockMovement, ClientPurchase } from '@/src/types';
-import { getInitialOrders, getInitialProducts, getInitialStockMovements } from '@/src/services/productStorage';
-import { getInitialPurchases } from '@/src/services/clientStorage';
+import { Order, OrderPaymentStatus, Product, StockMovement, ClientPurchase, Client } from '@/src/types';
+import { getInitialOrders, getInitialProducts, getInitialStockMovements, processOrderSale } from '@/src/services/productStorage';
+import { getInitialPurchases, getInitialClients } from '@/src/services/clientStorage';
 
 interface OrdersProps {
   onNavigateToProducts?: () => void;
@@ -32,6 +32,7 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigateToProducts }) => {
   const [products, setProducts] = useLocalStorage<Product[]>('products', getInitialProducts());
   const [stockMovements, setStockMovements] = useLocalStorage<StockMovement[]>('stock_movements', getInitialStockMovements());
   const [clientPurchases, setClientPurchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
+  const [clients, setClients] = useLocalStorage<Client[]>('clients', getInitialClients());
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | OrderPaymentStatus>('todos');
@@ -85,78 +86,37 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigateToProducts }) => {
   }, [orders, searchTerm, statusFilter]);
 
   // Action: Confirm payment of pending order (triggers stock deduction)
-  const handleConfirmPayment = (order: Order) => {
-    if (order.paymentStatus === 'pago') return;
+  const handleConfirmPayment = (orderToConfirm: Order) => {
+    if (orderToConfirm.paymentStatus === 'pago') return;
 
     const confirmAction = window.confirm(
-      `Confirmar pagamento do pedido #${order.id} no valor de ${formatCurrency(order.totalAmount)}?\n\nEsta ação irá dar baixa no estoque dos produtos correspondentes.`
+      `Confirmar pagamento do pedido #${orderToConfirm.id} no valor de ${formatCurrency(orderToConfirm.totalAmount)}?\n\nEsta ação irá dar baixa no estoque dos produtos correspondentes.`
     );
     if (!confirmAction) return;
 
-    // 1. Deduct stock for each item in the order
-    let updatedProducts = [...products];
-    const newMovements: StockMovement[] = [];
-
-    order.items.forEach(item => {
-      const prodIndex = updatedProducts.findIndex(p => p.id === item.productId);
-      if (prodIndex !== -1) {
-        const prod = updatedProducts[prodIndex];
-        const prevStock = prod.stock;
-        const newStock = Math.max(0, prevStock - item.quantity);
-
-        updatedProducts[prodIndex] = {
-          ...prod,
-          stock: newStock,
-          salesCount: (prod.salesCount || 0) + item.quantity,
-          updatedAt: new Date().toISOString()
-        };
-
-        newMovements.push({
-          id: `mov-${Date.now()}-${item.productId}`,
-          productId: item.productId,
-          productName: item.productName,
-          type: 'venda',
-          quantity: item.quantity,
-          previousStock: prevStock,
-          newStock: newStock,
-          reason: `Venda balcão #${order.id} - ${order.clientName} (pagamento confirmado)`,
-          date: new Date().toISOString(),
-          performedBy: 'Gerente Salão Luxe',
-          orderId: order.id
-        });
-      }
-    });
-
-    setProducts(updatedProducts);
-    setStockMovements(prev => [...newMovements, ...prev]);
-
-    // 2. Mark order as paid and stockDeducted
-    const updatedOrder: Order = {
-      ...order,
+    const paidOrder: Order = {
+      ...orderToConfirm,
       paymentStatus: 'pago',
-      stockDeducted: true
+      stockDeducted: false, // processOrderSale will set it true and deduct stock
     };
 
-    setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+    const result = processOrderSale({
+      order: paidOrder,
+      products,
+      stockMovements,
+      clientPurchases,
+      clients,
+      performedBy: 'Gerente Salão Luxe (Confirmação de Pedido)'
+    });
 
-    // 3. Sync to client_purchases if not already there and client is not generic balcao
-    if (order.clientId !== 'balcao') {
-      const newClientPurchase: ClientPurchase = {
-        id: `cp-${order.id}`,
-        clientId: order.clientId,
-        date: order.date,
-        description: order.items.map(i => `${i.quantity}x ${i.productName}`).join(', '),
-        category: 'produto',
-        amount: order.totalAmount,
-        paymentMethod: order.paymentMethod,
-        status: 'pago',
-        invoiceNumber: `PED-${order.id}`,
-      };
-      setClientPurchases(prev => [newClientPurchase, ...prev]);
-    }
+    setOrders(prev => prev.map(o => o.id === orderToConfirm.id ? result.order : o));
+    setProducts(result.products);
+    setStockMovements(result.stockMovements);
+    setClientPurchases(result.clientPurchases);
+    setClients(result.clients);
 
-    if (selectedOrder && selectedOrder.id === order.id) {
-      setSelectedOrder(updatedOrder);
+    if (selectedOrder && selectedOrder.id === orderToConfirm.id) {
+      setSelectedOrder(result.order);
     }
   };
 

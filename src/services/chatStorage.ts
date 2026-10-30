@@ -48,6 +48,10 @@ export const DEFAULT_QUICK_REPLIES: QuickReply[] = [
   }
 ];
 
+export function getInitialConversations(clients: Client[] = [], professionals: Professional[] = []): ChatConversation[] {
+  return syncConversationsWithRegisteredEntities(clients, professionals, []);
+}
+
 export function syncConversationsWithRegisteredEntities(
   clients: Client[],
   professionals: Professional[],

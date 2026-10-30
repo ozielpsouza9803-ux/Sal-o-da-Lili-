@@ -7,7 +7,7 @@ interface QuickBuyModalProps {
   product: Product | null;
   onClose: () => void;
   clients: Client[];
-  onConfirmOrder: (order: Order, updatedProduct: Product) => void;
+  onConfirmOrder: (order: Order, updatedProduct?: Product) => void;
 }
 
 export const QuickBuyModal: React.FC<QuickBuyModalProps> = ({
@@ -52,20 +52,13 @@ export const QuickBuyModal: React.FC<QuickBuyModalProps> = ({
       totalCost: totalCost,
       paymentMethod: paymentMethod,
       paymentStatus: 'pago',
-      stockDeducted: true,
+      stockDeducted: false, // processOrderSale will set it true and record movement
       date: new Date().toISOString().split('T')[0],
       createdAt: new Date().toISOString(),
       notes: 'Pedido realizado através da Vitrine Digital do Salão Luxe'
     };
 
-    const updatedProduct: Product = {
-      ...product,
-      stock: product.stock - quantity,
-      salesCount: (product.salesCount || 0) + quantity,
-      updatedAt: new Date().toISOString()
-    };
-
-    onConfirmOrder(newOrder, updatedProduct);
+    onConfirmOrder(newOrder);
     onClose();
   };
 

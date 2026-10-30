@@ -246,3 +246,68 @@ export function exportToCSV(data: {
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Calculates unified financial metrics and real weekly chart data for the Dashboard and Financial view.
+ */
+export function getFinancialDashboardMetrics(params: {
+  appointments: Appointment[];
+  orders: Order[];
+  expenses: Expense[];
+}) {
+  const { appointments, orders, expenses } = params;
+
+  // Active appointments (services revenue)
+  const validAppointments = appointments.filter(a => a.status !== 'cancelado');
+  const serviceRevenue = validAppointments.reduce((acc, a) => acc + (a.totalPrice || 0), 0);
+
+  // Paid orders (product revenue)
+  const paidOrders = orders.filter(o => o.paymentStatus === 'pago');
+  const productRevenue = paidOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+
+  // Paid expenses
+  const paidExpenses = expenses.filter(e => e.status === 'paga').reduce((acc, e) => acc + (e.amount || 0), 0);
+
+  // Total gross revenue & net profit
+  const totalGrossRevenue = serviceRevenue + productRevenue;
+  const netProfit = totalGrossRevenue - paidExpenses;
+
+  // Weekly real chart data calculation (for current week Mon-Sun)
+  const dayLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 is Sun, 1 is Mon...
+  const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = subDays(today, distanceToMonday);
+
+  const weeklyChartData = dayLabels.map((name, index) => {
+    const targetDate = format(subDays(monday, -index), 'yyyy-MM-dd');
+
+    const dayServices = validAppointments
+      .filter(a => a.date === targetDate)
+      .reduce((acc, a) => acc + (a.totalPrice || 0), 0);
+
+    const dayProducts = paidOrders
+      .filter(o => o.date === targetDate)
+      .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+
+    return {
+      name,
+      date: targetDate,
+      vlr: dayServices + dayProducts,
+      servicos: dayServices,
+      produtos: dayProducts,
+    };
+  });
+
+  return {
+    serviceRevenue,
+    productRevenue,
+    paidExpenses,
+    totalGrossRevenue,
+    netProfit,
+    appointmentCount: validAppointments.length,
+    paidOrdersCount: paidOrders.length,
+    weeklyChartData,
+  };
+}
+

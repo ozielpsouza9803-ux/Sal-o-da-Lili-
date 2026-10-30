@@ -3,14 +3,9 @@ import { Plus, Search, Edit2, Trash2, Clock, DollarSign, Tag } from 'lucide-reac
 import { cn, formatCurrency } from '@/src/lib/utils';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { Service } from '@/src/types';
+import { getInitialServices, SERVICE_CATEGORIES } from '@/src/services/servicesStorage';
 
-export const initialServicesList: Service[] = [
-  { id: '1', name: 'Corte Masculino', category: 'Cabelo', price: 60, duration: 30 },
-  { id: '2', name: 'Corte Feminino', category: 'Cabelo', price: 120, duration: 60 },
-  { id: '3', name: 'Barba Terapia', category: 'Barba', price: 45, duration: 30 },
-  { id: '4', name: 'Coloração', category: 'Química', price: 180, duration: 120 },
-  { id: '5', name: 'Escova Modeladora', category: 'Finalização', price: 80, duration: 45 },
-];
+export const initialServicesList = getInitialServices();
 
 export const Services: React.FC = () => {
   const [services, setServices] = useLocalStorage<Service[]>('services', initialServicesList);

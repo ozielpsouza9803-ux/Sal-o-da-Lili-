@@ -127,6 +127,24 @@ export async function generatePixQrCodeDataUrl(brCode: string): Promise<string> 
   }
 }
 
+export interface SalonSettings {
+  tradeName: string;
+  cnpj: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+
+export function getDefaultSalonSettings(): SalonSettings {
+  return {
+    tradeName: 'Salão Luxe Unissex',
+    cnpj: '12.345.678/0001-90',
+    email: 'contato@salaoluxe.com',
+    phone: '(11) 99999-8888',
+    address: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
+  };
+}
+
 /**
  * Default salon Pix configuration
  */

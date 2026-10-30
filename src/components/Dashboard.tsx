@@ -21,20 +21,11 @@ import {
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/src/lib/utils';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { Appointment, Client, Order } from '@/src/types';
+import { Appointment, Client, Order, Expense } from '@/src/types';
 import { getInitialAppointments, STATUS_LABELS } from '@/src/services/agendaStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { getInitialOrders } from '@/src/services/productStorage';
-
-const data = [
-  { name: 'Seg', vlr: 4000 },
-  { name: 'Ter', vlr: 3000 },
-  { name: 'Qua', vlr: 2000 },
-  { name: 'Qui', vlr: 2780 },
-  { name: 'Sex', vlr: 1890 },
-  { name: 'Sáb', vlr: 2390 },
-  { name: 'Dom', vlr: 3490 },
-];
+import { getInitialExpenses, getFinancialDashboardMetrics } from '@/src/services/financialStorage';
 
 const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
   <div className="bg-[#111111] border border-[#d4af37]/10 p-6 rounded-2xl hover:border-[#d4af37]/30 transition-all duration-300">
@@ -65,12 +56,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
   const [appointments] = useLocalStorage<Appointment[]>('appointments', getInitialAppointments());
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
   const [orders] = useLocalStorage<Order[]>('orders', getInitialOrders());
+  const [expenses] = useLocalStorage<Expense[]>('expenses', getInitialExpenses());
 
-  const activeAppointments = appointments.filter(a => a.status !== 'cancelado');
-  const serviceRevenue = activeAppointments.reduce((acc, a) => acc + a.totalPrice, 0);
-  const productRevenue = orders.filter(o => o.paymentStatus === 'pago').reduce((acc, o) => acc + o.totalAmount, 0);
-  const totalRevenue = serviceRevenue + productRevenue;
-  const totalPaidSales = orders.filter(o => o.paymentStatus === 'pago').length;
+  const metrics = getFinancialDashboardMetrics({
+    appointments,
+    orders,
+    expenses
+  });
 
   // Upcoming appointments
   const upcomingAppointments = [...appointments]
@@ -99,31 +91,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Faturamento" 
-          value={formatCurrency(totalRevenue)} 
+          title="Faturamento Bruto" 
+          value={formatCurrency(metrics.totalGrossRevenue)} 
           icon={TrendingUp}
-          trend={{ value: 12.5, isPositive: true }}
           color="bg-amber-600"
         />
         <StatCard 
           title="Clientes Ativos" 
           value={String(clients.length)} 
           icon={Users}
-          trend={{ value: 8.2, isPositive: true }}
           color="bg-blue-600"
         />
         <StatCard 
           title="Agendamentos" 
-          value={String(activeAppointments.length)} 
+          value={String(metrics.appointmentCount)} 
           icon={Calendar}
-          trend={{ value: 2.4, isPositive: true }}
           color="bg-purple-600"
         />
         <StatCard 
-          title="Vendas" 
-          value={String(totalPaidSales || orders.length)} 
+          title="Vendas Pagas" 
+          value={String(metrics.paidOrdersCount)} 
           icon={ShoppingBag}
-          trend={{ value: 15.7, isPositive: true }}
           color="bg-emerald-600"
         />
       </div>
@@ -131,10 +119,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Revenue Chart */}
         <div className="bg-[#111111] border border-[#d4af37]/10 p-6 rounded-2xl">
-          <h2 className="text-lg font-semibold text-white mb-6">Desempenho Semanal</h2>
+          <h2 className="text-lg font-semibold text-white mb-6">Desempenho Semanal Real</h2>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
+              <AreaChart data={metrics.weeklyChartData}>
                 <defs>
                   <linearGradient id="colorVlr" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#d4af37" stopOpacity={0.3}/>
@@ -158,6 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToAgenda }) => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#d4af37', borderRadius: '12px' }}
                   itemStyle={{ color: '#d4af37' }}
+                  formatter={(val: any) => [formatCurrency(Number(val) || 0), 'Faturamento']}
                 />
                 <Area 
                   type="monotone" 

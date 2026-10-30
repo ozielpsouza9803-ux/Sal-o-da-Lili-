@@ -32,7 +32,8 @@ import {
   getInitialSuppliers, 
   getInitialStockMovements, 
   getInitialOrders, 
-  PRODUCT_CATEGORIES 
+  PRODUCT_CATEGORIES,
+  processOrderSale
 } from '@/src/services/productStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { ProductModal } from '@/src/components/products/ProductModal';
@@ -145,27 +146,25 @@ export const Products: React.FC = () => {
   // Order completed
   const handleOrderCompleted = (
     newOrder: Order, 
-    updatedProducts: Product[], 
-    newMovements: StockMovement[], 
-    newClientPurchase?: ClientPurchase
+    _updatedProducts: Product[], 
+    _newMovements: StockMovement[], 
+    _newClientPurchase?: ClientPurchase
   ) => {
-    setOrders(prev => [newOrder, ...prev]);
+    const result = processOrderSale({
+      order: newOrder,
+      products,
+      stockMovements: movements,
+      clientPurchases: purchases,
+      clients,
+      performedBy: 'PDV Balcão Salão Luxe'
+    });
+
+    setOrders(prev => [result.order, ...prev]);
     if (newOrder.paymentStatus === 'pago') {
-      setProducts(updatedProducts);
-      setMovements(prev => [...newMovements, ...prev]);
-      if (newClientPurchase) {
-        setPurchases(prev => [newClientPurchase, ...prev]);
-        setClients(prev => prev.map(c => {
-          if (c.id === newClientPurchase.clientId) {
-            return {
-              ...c,
-              totalSpent: (c.totalSpent || 0) + newClientPurchase.amount,
-              updatedAt: new Date().toISOString(),
-            };
-          }
-          return c;
-        }));
-      }
+      setProducts(result.products);
+      setMovements(result.stockMovements);
+      setPurchases(result.clientPurchases);
+      setClients(result.clients);
     }
   };
 

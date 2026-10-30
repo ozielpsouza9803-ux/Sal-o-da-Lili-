@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, Award } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { Professional } from '@/src/types';
+import { getInitialProfessionals } from '@/src/services/professionalsStorage';
 
-export const initialProfessionalsList: Professional[] = [
-  { id: '1', name: 'Ricardo Silva', role: 'Cabeleireiro Master', commission: 40, specialties: ['Corte', 'Barba'], photoUrl: 'RS' },
-  { id: '2', name: 'Ana Oliveira', role: 'Colorista Premium', commission: 35, specialties: ['Coloração', 'Mechas'], photoUrl: 'AO' },
-];
+export const initialProfessionalsList = getInitialProfessionals();
 
 export const Professionals: React.FC = () => {
   const [professionals, setProfessionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
