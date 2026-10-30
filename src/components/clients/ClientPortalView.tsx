@@ -16,12 +16,14 @@ import {
   Phone, 
   DollarSign, 
   Sparkles,
-  Plus
+  Plus,
+  Headphones
 } from 'lucide-react';
 import { Client, Appointment, Service, Professional, ClientPurchase } from '@/src/types';
 import { formatCurrency, cn } from '@/src/lib/utils';
 import { STATUS_LABELS } from '@/src/services/agendaStorage';
 import { format } from 'date-fns';
+import { PublicChat } from '@/src/components/chat/PublicChat';
 
 interface ClientPortalViewProps {
   initialClient?: Client | null;
@@ -52,7 +54,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Portal navigation tabs
-  const [activeTab, setActiveTab] = useState<'agendamentos' | 'novo_agendamento' | 'favoritos' | 'compras' | 'perfil'>('agendamentos');
+  const [activeTab, setActiveTab] = useState<'agendamentos' | 'novo_agendamento' | 'favoritos' | 'compras' | 'perfil' | 'chat'>('agendamentos');
 
   // Booking state for online client booking
   const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id || '');
@@ -341,6 +343,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
           { id: 'novo_agendamento', label: 'Agendar Novo Atendimento', icon: Scissors },
           { id: 'favoritos', label: `Serviços Favoritos (${favoriteServices.length})`, icon: Heart },
           { id: 'compras', label: `Minhas Compras (${clientPurchases.length})`, icon: ShoppingBag },
+          { id: 'chat', label: 'Atendimento Luxe', icon: Headphones },
           { id: 'perfil', label: 'Meus Dados Cadastrais', icon: User },
         ].map(tab => (
           <button
@@ -650,18 +653,61 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
         </div>
       )}
 
-      {/* TAB 5: MEUS DADOS */}
+      {/* TAB 5: MEUS DADOS E PERFIL */}
       {activeTab === 'perfil' && (
-        <div className="max-w-2xl mx-auto bg-[#111111] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 animate-in fade-in">
-          <h3 className="text-lg font-bold text-white tracking-tight">Seus Dados Pessoais</h3>
-
-          <div className="space-y-4 text-xs">
-            <div className="p-4 bg-white/5 rounded-xl space-y-1">
-              <span className="text-neutral-500 block">Nome Completo</span>
-              <span className="text-white font-semibold text-sm">{loggedClient.name}</span>
+        <div className="max-w-2xl mx-auto bg-[#111111] border border-[#d4af37]/20 rounded-3xl p-6 sm:p-8 space-y-6 animate-in fade-in">
+          {/* Header do Perfil */}
+          <div className="flex items-center gap-4 pb-6 border-b border-white/10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-extrabold text-lg shadow-md shrink-0 overflow-hidden">
+              {loggedClient.photoUrl ? (
+                <img src={loggedClient.photoUrl} alt={loggedClient.name} className="w-full h-full object-cover" />
+              ) : (
+                loggedClient.name.substring(0, 2).toUpperCase()
+              )}
             </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold text-white truncate">{loggedClient.name}</h3>
+              <p className="text-neutral-400 text-xs truncate">{loggedClient.email} • {loggedClient.phone}</p>
+              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30">
+                Cliente VIP Salão Luxe
+              </span>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
+          {/* Atalhos Rápidos Compactos */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <button
+              onClick={() => setActiveTab('novo_agendamento')}
+              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+            >
+              <Scissors size={18} className="text-[#d4af37]" />
+              <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Agendar</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('favoritos')}
+              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+            >
+              <Heart size={18} className="text-[#d4af37]" />
+              <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Favoritos</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('compras')}
+              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+            >
+              <ShoppingBag size={18} className="text-[#d4af37]" />
+              <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Compras</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('chat')}
+              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+            >
+              <Headphones size={18} className="text-[#d4af37]" />
+              <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Chat Luxe</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 text-xs pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 bg-white/5 rounded-xl space-y-1">
                 <span className="text-neutral-500 block">E-mail Cadastrado</span>
                 <span className="text-white font-semibold">{loggedClient.email}</span>
@@ -674,18 +720,31 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
 
             {loggedClient.preferences && (
               <div className="p-4 bg-white/5 rounded-xl space-y-1">
-                <span className="text-neutral-500 block">Suas Preferências Registradas</span>
+                <span className="text-neutral-500 block">Preferências Registradas</span>
                 <span className="text-neutral-300 italic">"{loggedClient.preferences}"</span>
               </div>
             )}
 
-            <div className="p-4 bg-[#141414] border border-[#d4af37]/20 rounded-xl space-y-2">
-              <span className="text-[#d4af37] font-bold block">Privacidade e Proteção de Dados (LGPD)</span>
-              <p className="text-neutral-400 leading-relaxed text-[11px]">
-                Seus dados cadastrais e histórico de atendimentos são protegidos e utilizados exclusivamente para personalização do seu atendimento no Salão Luxe Unissex.
-              </p>
+            {/* Botão Sair da Conta do Cliente */}
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+              <span className="text-neutral-400 text-xs">Encerrar sessão atual</span>
+              <button
+                onClick={() => setLoggedClient(null)}
+                className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
+                title="Sair da conta e retornar ao início"
+              >
+                <LogOut size={16} />
+                <span>Sair da Conta</span>
+              </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB: ATENDIMENTO LUXE (CHAT) */}
+      {activeTab === 'chat' && (
+        <div className="animate-in fade-in">
+          <PublicChat />
         </div>
       )}
     </div>

@@ -471,8 +471,10 @@ export default function App() {
         onClose={() => setIsPWAInstallModalOpen(false)}
       />
 
-      {/* Assistente IA Flutuante na Área Pública */}
-      <AIAssistantButton onNavigate={handlePublicViewChange} />
+      {/* Assistente IA Flutuante na Área Pública (Oculto nos portais de cliente e profissional) */}
+      {currentPublicView !== 'area_cliente' && currentPublicView !== 'espaco_profissional' && (
+        <AIAssistantButton onNavigate={handlePublicViewChange} />
+      )}
 
       {/* Navegação Inferior Fixa da Área Pública */}
       <BottomNavigation 

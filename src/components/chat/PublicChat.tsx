@@ -14,7 +14,8 @@ import {
   ExternalLink,
   MessageCircle,
   Scissors,
-  ArrowLeft
+  ArrowLeft,
+  Headphones
 } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { ChatMessage, ChatConversation, ChatAttachment, Client } from '@/src/types';
@@ -162,18 +163,18 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
           )}
 
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-extrabold shadow-md shadow-[#d4af37]/20 shrink-0">
-            <MessageSquare size={24} />
+            <Headphones size={24} className="text-black" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Atendimento Salão Luxe</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Atendimento Luxe (Recepção)</h1>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 uppercase flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                 Online
               </span>
             </div>
             <p className="text-neutral-400 text-xs mt-0.5">
-              Tire suas dúvidas em tempo real, consulte disponibilidade ou envie fotos para avaliação dos nossos especialistas.
+              Atendimento humano e humanizado com especialistas e recepção do Salão Luxe.
             </p>
           </div>
         </div>
@@ -192,16 +193,21 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
       </div>
 
       {/* Main Chat Box Container */}
-      <div className="bg-[#0e0e0e] border border-[#d4af37]/20 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[540px] relative">
+      <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[420px] relative">
         {/* Chat Sub-Header */}
-        <div className="bg-[#141414] border-b border-white/10 p-4 flex items-center justify-between">
+        <div className="bg-[#121212] border-b border-[#d4af37]/15 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] font-bold">
-              SL
+            <div className="w-10 h-10 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] font-bold">
+              <Headphones size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Recepção & Equipe Luxe</h3>
-              <p className="text-[11px] text-neutral-400">Atendimento humanizado e personalizado</p>
+              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                Recepção & Equipe Luxe
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold uppercase">
+                  Ativo
+                </span>
+              </h3>
+              <p className="text-[11px] text-neutral-400">Canal oficial de atendimento humanizado</p>
             </div>
           </div>
 

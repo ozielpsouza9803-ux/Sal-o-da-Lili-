@@ -415,37 +415,86 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
         </div>
       )}
 
-      {/* TAB 3: MEU PERFIL */}
+      {/* TAB: MEU PERFIL PROFISSIONAL */}
       {activeTab === 'perfil' && (
-        <div className="max-w-2xl mx-auto bg-[#111111] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4 text-xs">
-          <h3 className="text-lg font-bold text-white tracking-tight">Seus Dados de Profissional Cadastrado</h3>
-
-          <div className="p-4 bg-white/5 rounded-xl space-y-1">
-            <span className="text-neutral-500 block">Especialidades</span>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {loggedProfessional.specialties.map(spec => (
-                <span key={spec} className="px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] font-bold text-[11px]">
-                  {spec}
-                </span>
-              ))}
+        <div className="max-w-2xl mx-auto bg-[#111111] border border-[#d4af37]/20 rounded-3xl p-6 sm:p-8 space-y-6 animate-in fade-in">
+          {/* Header do Perfil Profissional */}
+          <div className="flex items-center gap-4 pb-6 border-b border-white/10">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-extrabold text-lg shadow-md shrink-0 overflow-hidden">
+              {loggedProfessional.photoUrl ? (
+                <img src={loggedProfessional.photoUrl} alt={loggedProfessional.name} className="w-full h-full object-cover" />
+              ) : (
+                loggedProfessional.name.substring(0, 2).toUpperCase()
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold text-white truncate">{loggedProfessional.name}</h3>
+              <p className="text-neutral-400 text-xs truncate">{loggedProfessional.role} • Salão Luxe</p>
+              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30">
+                Especialista Credenciado
+              </span>
             </div>
           </div>
 
-          <div className="p-4 bg-white/5 rounded-xl space-y-1">
-            <span className="text-neutral-500 block">Percentual de Comissão</span>
-            <span className="text-white font-extrabold text-sm">{loggedProfessional.commission}%</span>
+          {/* Atalhos e Acesso ao Chat */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setActiveTab('chat')}
+              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+            >
+              <MessageSquare size={18} className="text-[#d4af37]" />
+              <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Abrir Chat Recepção</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('agenda')}
+              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+            >
+              <Calendar size={18} className="text-[#d4af37]" />
+              <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Minha Agenda</span>
+            </button>
           </div>
 
-          {proAbsences.length > 0 && (
-            <div className="p-4 bg-white/5 rounded-xl space-y-2">
-              <span className="text-neutral-500 block">Folgas e Pausas Registradas</span>
-              {proAbsences.map(abs => (
-                <div key={abs.id} className="text-neutral-300">
-                  • {abs.title} ({abs.startDate} até {abs.endDate})
-                </div>
-              ))}
+          <div className="space-y-4 text-xs">
+            <div className="p-4 bg-white/5 rounded-xl space-y-1">
+              <span className="text-neutral-500 block">Especialidades</span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {loggedProfessional.specialties.map(spec => (
+                  <span key={spec} className="px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] font-bold text-[11px]">
+                    {spec}
+                  </span>
+                ))}
+              </div>
             </div>
-          )}
+
+            <div className="p-4 bg-white/5 rounded-xl space-y-1">
+              <span className="text-neutral-500 block">Percentual de Comissão</span>
+              <span className="text-white font-extrabold text-sm">{loggedProfessional.commission}% por atendimento</span>
+            </div>
+
+            {proAbsences.length > 0 && (
+              <div className="p-4 bg-white/5 rounded-xl space-y-2">
+                <span className="text-neutral-500 block">Folgas e Pausas Registradas</span>
+                {proAbsences.map(abs => (
+                  <div key={abs.id} className="text-neutral-300">
+                    • {abs.title} ({abs.startDate} até {abs.endDate})
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Botão Sair da Conta do Profissional */}
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+              <span className="text-neutral-400 text-xs">Encerrar sessão de profissional</span>
+              <button
+                onClick={() => setLoggedProfessional(null)}
+                className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
+                title="Sair do perfil profissional"
+              >
+                <LogOut size={16} />
+                <span>Sair do Perfil</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

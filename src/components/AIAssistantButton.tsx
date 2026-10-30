@@ -158,12 +158,12 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate
 
       {/* Floating Chat Modal */}
       {isOpen && (
-        <div className="fixed bottom-24 sm:bottom-28 right-2 sm:right-6 z-50 w-[95vw] sm:w-[380px] max-h-[520px] bg-[#0d0d0d] border border-[#d4af37]/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-24 sm:bottom-28 right-2 sm:right-6 z-50 w-[95vw] sm:w-[380px] h-[520px] bg-[#0a0a0a] border border-[#d4af37]/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#111111] via-[#1a1810] to-[#111111] border-b border-[#d4af37]/20 p-4 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-[#121212] via-[#1c1810] to-[#121212] border-b border-[#d4af37]/20 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-bold shadow-md">
-                <Bot size={20} />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4af37] via-[#fff8dc] to-[#b8860b] flex items-center justify-center text-black font-extrabold shadow-[0_0_15px_rgba(212,175,55,0.4)] relative">
+                <Sparkles size={20} className="text-black animate-pulse" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
@@ -172,7 +172,7 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate
                     24/7
                   </span>
                 </h3>
-                <p className="text-[11px] text-neutral-400">Atendimento inteligente em tempo real</p>
+                <p className="text-[11px] text-neutral-400">Inteligência artificial avançada</p>
               </div>
             </div>
             <button
