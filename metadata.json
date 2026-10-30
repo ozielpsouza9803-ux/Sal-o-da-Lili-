@@ -1,0 +1,6 @@
+{
+  "name": "Salão Unissex - Painel Gerenciador",
+  "description": "Painel administrativo premium para gestão completa de salão de beleza, incluindo agenda, profissionais, clientes, serviços, produtos, financeiro e vitrine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
