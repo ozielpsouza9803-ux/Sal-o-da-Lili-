@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Users, 
   Lock, 
@@ -14,11 +14,16 @@ import {
   ArrowLeft,
   Sparkles,
   TrendingUp,
-  UserCheck
+  UserCheck,
+  MessageSquare,
+  Send,
+  CheckCheck
 } from 'lucide-react';
-import { Professional, Appointment, ProfessionalCommission, ProfessionalAbsence } from '@/src/types';
+import { Professional, Appointment, ProfessionalCommission, ProfessionalAbsence, ChatMessage } from '@/src/types';
 import { formatCurrency, cn } from '@/src/lib/utils';
 import { STATUS_LABELS } from '@/src/services/agendaStorage';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
+import { sendMessageDirectly, markConversationAsReadDirectly, ADMIN_PARTICIPANT_ID } from '@/src/services/chatStorage';
 
 interface ProfessionalPortalViewProps {
   professionals: Professional[];
@@ -43,7 +48,51 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'agenda' | 'comissoes' | 'perfil'>('agenda');
+  const [activeTab, setActiveTab] = useState<'agenda' | 'comissoes' | 'perfil' | 'chat'>('agenda');
+
+  // Real-time chat sync for logged professional
+  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
+  const [chatInput, setChatInput] = useState('');
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  const proConvId = loggedProfessional ? `conv-prof-${loggedProfessional.id}` : null;
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const rawMsgs = localStorage.getItem('chat_messages');
+        if (rawMsgs) setMessages(JSON.parse(rawMsgs));
+      } catch (err) {
+        console.error('Pro chat sync error:', err);
+      }
+    };
+
+    window.addEventListener('salao-luxe-chat-sync', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('salao-luxe-chat-sync', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [setMessages]);
+
+  useEffect(() => {
+    if (activeTab === 'chat' && proConvId) {
+      markConversationAsReadDirectly(proConvId, 'participant');
+    }
+  }, [activeTab, proConvId, messages.length]);
+
+  const proMessages = useMemo(() => {
+    if (!proConvId) return [];
+    return messages
+      .filter(m => m.conversationId === proConvId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [messages, proConvId]);
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [proMessages, activeTab]);
 
   // Handle Login
   const handleLogin = (e: React.FormEvent) => {
@@ -239,6 +288,7 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
         {[
           { id: 'agenda', label: `Minha Agenda (${proAppointments.length})`, icon: Calendar },
           { id: 'comissoes', label: `Minhas Comissões (${formatCurrency(totalCommissionsEarned)})`, icon: DollarSign },
+          { id: 'chat', label: 'Chat com Recepção', icon: MessageSquare },
           { id: 'perfil', label: 'Meu Perfil & Horários', icon: Users }
         ].map(tab => (
           <button
@@ -396,6 +446,107 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 4: CHAT COM A RECEPÇÃO / ADM */}
+      {activeTab === 'chat' && loggedProfessional && (
+        <div className="bg-[#111111] border border-[#d4af37]/25 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[520px] animate-in fade-in">
+          {/* Header */}
+          <div className="p-4 bg-[#161616] border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/30 text-[#d4af37] flex items-center justify-center font-bold">
+                SL
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  Recepção & Gerência Salão Luxe
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                </h3>
+                <p className="text-[11px] text-neutral-400">Canal direto da equipe de profissionais</p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30">
+              {loggedProfessional.name}
+            </span>
+          </div>
+
+          {/* Messages Feed */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+            {proMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
+                <MessageSquare size={32} className="text-[#d4af37]" />
+                <h4 className="text-white font-bold text-sm">Comunicação Direta com a Recepção</h4>
+                <p className="text-neutral-400 text-xs max-w-xs">
+                  Envie mensagens, solicite encaixes, informe faltas de produtos ou fale com a gerência em tempo real.
+                </p>
+              </div>
+            ) : (
+              proMessages.map(msg => {
+                const isFromPro = msg.senderRole === 'profissional';
+                return (
+                  <div key={msg.id} className={cn("flex flex-col", isFromPro ? "items-end" : "items-start")}>
+                    <div className="max-w-[80%] space-y-1">
+                      <span className="text-[10px] text-neutral-400 font-semibold px-1 block">
+                        {isFromPro ? 'Você (Equipe)' : 'Recepção / Gerência'}
+                      </span>
+                      <div className={cn(
+                        "p-3 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                        isFromPro 
+                          ? "bg-[#d4af37] text-black font-medium rounded-br-none" 
+                          : "bg-[#1d1d1d] border border-white/10 text-white rounded-bl-none"
+                      )}>
+                        {msg.content}
+                      </div>
+                      <span className="text-[9px] text-neutral-500 block text-right px-1">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={chatScrollRef} />
+          </div>
+
+          {/* Input form */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!chatInput.trim()) return;
+              sendMessageDirectly({
+                conversationId: `conv-prof-${loggedProfessional.id}`,
+                senderId: loggedProfessional.id,
+                senderName: loggedProfessional.name,
+                senderRole: 'profissional',
+                recipientId: ADMIN_PARTICIPANT_ID,
+                content: chatInput.trim(),
+                participantDetails: {
+                  type: 'profissional',
+                  participantId: loggedProfessional.id,
+                  participantName: loggedProfessional.name,
+                  participantRoleDescription: loggedProfessional.role
+                }
+              });
+              setChatInput('');
+            }}
+            className="p-3 bg-[#161616] border-t border-white/10 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder={`Mensagem para a recepção como ${loggedProfessional.name}...`}
+              className="flex-1 bg-black/40 border border-white/10 focus:border-[#d4af37]/60 text-white text-xs rounded-xl px-3.5 py-2.5 outline-none placeholder:text-neutral-500"
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim()}
+              className="p-2.5 bg-[#d4af37] disabled:opacity-40 text-black font-extrabold rounded-xl hover:bg-[#b8860b] transition-all shadow-md shadow-[#d4af37]/20"
+            >
+              <Send size={16} />
+            </button>
+          </form>
         </div>
       )}
     </div>
