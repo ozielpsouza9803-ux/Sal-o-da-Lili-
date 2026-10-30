@@ -134,3 +134,86 @@ export interface ProfessionalAbsence {
   allDay: boolean;
   notes?: string;
 }
+
+// ----------------------------------------------------
+// PRODUTOS, ESTOQUE, FORNECEDORES E PEDIDOS
+// ----------------------------------------------------
+
+export type ProductStatus = 'ativo' | 'inativo';
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number; // Preço de venda
+  costPrice: number; // Custo de aquisição
+  stock: number; // Quantidade atual em estoque
+  minStock: number; // Alerta de estoque baixo
+  maxStock?: number;
+  imageUrl: string;
+  videoUrl?: string;
+  barcode?: string;
+  supplierId?: string;
+  supplierName?: string;
+  status: ProductStatus;
+  salesCount: number; // Quantidade total vendida
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  cnpj?: string;
+  categories: string[];
+  notes?: string;
+  createdAt: string;
+}
+
+export type StockMovementType = 'entrada' | 'saida' | 'venda' | 'ajuste';
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  type: StockMovementType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason: string;
+  date: string; // ISO
+  performedBy: string;
+  unitCost?: number;
+  orderId?: string;
+}
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  price: number;
+  costPrice: number;
+  quantity: number;
+  imageUrl?: string;
+}
+
+export type OrderPaymentStatus = 'pago' | 'pendente' | 'cancelado';
+
+export interface Order {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientPhone?: string;
+  items: OrderItem[];
+  totalAmount: number;
+  totalCost: number;
+  paymentMethod: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro';
+  paymentStatus: OrderPaymentStatus;
+  stockDeducted: boolean;
+  date: string; // YYYY-MM-DD
+  createdAt: string;
+  notes?: string;
+}

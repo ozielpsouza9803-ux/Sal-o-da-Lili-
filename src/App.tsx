@@ -8,6 +8,7 @@ import { Agenda } from '@/src/components/Agenda';
 import { Products } from '@/src/components/Products';
 import { Financial } from '@/src/components/Financial';
 import { Settings } from '@/src/components/Settings';
+import { Orders } from '@/src/components/Orders';
 import { ComingSoon } from '@/src/components/ComingSoon';
 import { ClientPortalView } from '@/src/components/clients/ClientPortalView';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
@@ -67,7 +68,7 @@ export default function App() {
       case 'produtos':
         return <Products />;
       case 'pedidos':
-        return <ComingSoon title="Pedidos" />;
+        return <Orders onNavigateToProducts={() => setCurrentView('produtos')} />;
       case 'financeiro':
         return <Financial />;
       case 'chat':
