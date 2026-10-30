@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from '@/src/components/Sidebar';
 import { Dashboard } from '@/src/components/Dashboard';
 import { PublicHome } from '@/src/components/public/PublicHome';
 import { PublicChat } from '@/src/components/chat/PublicChat';
+import { PublicSidebar } from '@/src/components/public/PublicSidebar';
+import { PWAInstallModal } from '@/src/components/pwa/PWAInstallModal';
+import { ProfessionalPortalView } from '@/src/components/professionals/ProfessionalPortalView';
 import { Services, initialServicesList } from '@/src/components/Services';
 import { Professionals, initialProfessionalsList } from '@/src/components/Professionals';
 import { Clients, initialClientsList } from '@/src/components/Clients';
@@ -18,11 +21,12 @@ import { BottomNavigation } from '@/src/components/BottomNavigation';
 import { AIAssistantButton } from '@/src/components/AIAssistantButton';
 import { AdminAuthModal } from '@/src/components/admin/AdminAuthModal';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { Client, Appointment, ClientPurchase, Service, Professional, ViewType, ChatConversation } from '@/src/types';
+import { Client, Appointment, ClientPurchase, Service, Professional, ViewType, ChatConversation, ProfessionalCommission, ProfessionalAbsence, UserRole } from '@/src/types';
 import { getInitialPurchases } from '@/src/services/clientStorage';
-import { getInitialAppointments } from '@/src/services/agendaStorage';
+import { getInitialAppointments, getInitialAbsences } from '@/src/services/agendaStorage';
 import { getInitialConversations } from '@/src/services/chatStorage';
-import { Menu, Search, Bell, Lock, LogOut, ShieldCheck, Sparkles, UserSquare2 } from 'lucide-react';
+import { getInitialCommissions } from '@/src/services/financialStorage';
+import { Menu, Search, Bell, Lock, LogOut, ShieldCheck, Sparkles, UserSquare2, Download } from 'lucide-react';
 
 export default function App() {
   // Area separation state: 'publica' vs 'administrativa'
@@ -31,18 +35,24 @@ export default function App() {
   const [showAdminAuthModal, setShowAdminAuthModal] = useState(false);
 
   // Active view states
-  const [currentPublicView, setCurrentPublicView] = useState<ViewType>('dashboard');
+  const [currentPublicView, setCurrentPublicView] = useState<ViewType | 'espaco_profissional' | 'galeria'>('dashboard');
   const [currentAdminView, setCurrentAdminView] = useState<ViewType>('dashboard');
 
+  // Sidebar & Drawers
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isPublicSidebarOpen, setIsPublicSidebarOpen] = useState(false);
+  const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
+
   const [portalClient, setPortalClient] = useState<Client | null>(null);
 
-  // Shared state for client portal synchronization
+  // Shared state for synchronization
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', getInitialAppointments());
   const [services] = useLocalStorage<Service[]>('services', initialServicesList);
   const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
   const [purchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
+  const [commissions] = useLocalStorage<ProfessionalCommission[]>('commissions', getInitialCommissions());
+  const [absences] = useLocalStorage<ProfessionalAbsence[]>('absences', getInitialAbsences());
   const [chatConversations] = useLocalStorage<ChatConversation[]>(
     'chat_conversations', 
     getInitialConversations(initialClientsList, initialProfessionalsList)
@@ -52,6 +62,10 @@ export default function App() {
 
   const handleBookFromPortal = (newApp: Appointment) => {
     setAppointments(prev => [newApp, ...prev]);
+  };
+
+  const handleUpdateAppointmentStatus = (appId: string, newStatus: Appointment['status']) => {
+    setAppointments(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
   };
 
   // Access Control Handler
@@ -75,8 +89,38 @@ export default function App() {
     setCurrentPublicView('dashboard');
   };
 
+  // Dynamic Sidebar option selector
+  const handleDynamicMenuSelect = (target: string) => {
+    if (target === 'pwa_install') {
+      setIsPWAInstallModalOpen(true);
+      return;
+    }
+
+    if (target === 'area_restrita_admin') {
+      handleOpenAdminPanelRequest();
+      return;
+    }
+
+    if (target === 'area_cliente') {
+      if (!portalClient) setPortalClient(clients[0] || null);
+      setCurrentPublicView('area_cliente');
+      return;
+    }
+
+    if (target === 'espaco_profissional') {
+      setCurrentPublicView('espaco_profissional');
+      return;
+    }
+
+    if (target === 'galeria' || target === 'vitrine') {
+      setCurrentPublicView('vitrine');
+      return;
+    }
+
+    handlePublicViewChange(target as ViewType);
+  };
+
   const handlePublicViewChange = (view: ViewType) => {
-    // If user clicks Client in public view
     if (view === 'area_cliente' && !portalClient) {
       setPortalClient(clients[0] || null);
     }
@@ -125,9 +169,21 @@ export default function App() {
             onBookAppointment={handleBookFromPortal}
           />
         );
+      case 'espaco_profissional':
+        return (
+          <ProfessionalPortalView
+            professionals={professionals}
+            appointments={appointments}
+            commissions={commissions}
+            absences={absences}
+            onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+            onBackToPublic={() => setCurrentPublicView('dashboard')}
+          />
+        );
       case 'chat':
         return <PublicChat />;
       case 'vitrine':
+      case 'galeria':
         return (
           <Vitrine
             isAdmin={false}
@@ -300,6 +356,14 @@ export default function App() {
       {/* Header da Área Pública */}
       <header className="sticky top-0 z-30 bg-[#080808]/90 backdrop-blur-md border-b border-[#d4af37]/20 px-4 sm:px-8 py-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsPublicSidebarOpen(true)}
+            className="p-2 hover:bg-white/5 rounded-xl text-[#d4af37] transition-colors border border-[#d4af37]/30"
+            title="Abrir Menu Lateral"
+          >
+            <Menu size={22} />
+          </button>
+
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-extrabold text-sm shadow-md shadow-[#d4af37]/20">
             SL
           </div>
@@ -313,7 +377,17 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Quick Install PWA Header Button */}
+          <button
+            onClick={() => setIsPWAInstallModalOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-[#d4af37]/40 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+            title="Instalar Aplicativo PWA"
+          >
+            <Download size={14} className="text-[#d4af37]" />
+            <span>Instalar App</span>
+          </button>
+
           <button 
             onClick={() => setCurrentPublicView('chat')}
             className="relative p-2 text-neutral-400 hover:text-[#d4af37] transition-colors"
@@ -345,12 +419,26 @@ export default function App() {
         {renderPublicView()}
       </main>
 
+      {/* Menu Lateral Dinâmico Público (Drawer) */}
+      <PublicSidebar
+        isOpen={isPublicSidebarOpen}
+        onClose={() => setIsPublicSidebarOpen(false)}
+        onSelectOption={handleDynamicMenuSelect}
+        currentUserRole={isAdminAuthenticated ? 'admin' : 'publico'}
+      />
+
+      {/* Modal de Instalação PWA */}
+      <PWAInstallModal
+        isOpen={isPWAInstallModalOpen}
+        onClose={() => setIsPWAInstallModalOpen(false)}
+      />
+
       {/* Assistente IA Flutuante na Área Pública */}
       <AIAssistantButton onNavigate={handlePublicViewChange} />
 
       {/* Navegação Inferior Fixa da Área Pública */}
       <BottomNavigation 
-        currentView={currentPublicView} 
+        currentView={currentPublicView === 'espaco_profissional' || currentPublicView === 'galeria' ? 'dashboard' : currentPublicView} 
         onViewChange={handlePublicViewChange}
         unreadChatCount={totalUnreadChat}
       />

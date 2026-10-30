@@ -22,6 +22,38 @@ export const EXPENSE_CATEGORIES: { id: ExpenseCategory; label: string; color: st
   { id: 'outros', label: 'Outras Despesas Operacionais', color: '#6b7280' },
 ];
 
+export function getInitialCommissions(): ProfessionalCommission[] {
+  return [
+    {
+      id: 'comm-1',
+      appointmentId: 'apt-101',
+      professionalId: 'prof-1',
+      professionalName: 'Carlos Oliveira',
+      clientName: 'Mariana Silva',
+      serviceNames: ['Corte Feminino Vip', 'Escova Modeladora'],
+      servicePrice: 180.00,
+      commissionRate: 50,
+      commissionAmount: 90.00,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      status: 'pendente'
+    },
+    {
+      id: 'comm-2',
+      appointmentId: 'apt-102',
+      professionalId: 'prof-2',
+      professionalName: 'Ana Souza',
+      clientName: 'Lucas Mendes',
+      serviceNames: ['Corte Masculino Fade'],
+      servicePrice: 90.00,
+      commissionRate: 50,
+      commissionAmount: 45.00,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      status: 'pago',
+      paidAt: format(new Date(), 'yyyy-MM-dd')
+    }
+  ];
+}
+
 export function getInitialExpenses(): Expense[] {
   const today = format(new Date(), 'yyyy-MM-dd');
   const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
@@ -310,4 +342,3 @@ export function getFinancialDashboardMetrics(params: {
     weeklyChartData,
   };
 }
-

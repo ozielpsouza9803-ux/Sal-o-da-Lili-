@@ -12,6 +12,29 @@ export type ViewType =
   | 'configuracoes'
   | 'area_cliente';
 
+export type UserRole = 'publico' | 'cliente' | 'profissional' | 'admin';
+
+export interface DynamicMenuItem {
+  id: string;
+  label: string;
+  iconName: string; // e.g. 'UserSquare2', 'Users', 'Lock', 'Download', 'Image', 'Sparkles', 'Calendar', 'ShoppingBag', 'MessageSquare'
+  targetView: ViewType | 'pwa_install' | 'espaco_profissional' | 'area_restrita_admin' | 'galeria';
+  roles: UserRole[]; // Which roles can see this menu option
+  order: number;
+  active: boolean;
+  visible: boolean;
+  isAction?: boolean;
+}
+
+export interface UserSession {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  role: UserRole;
+  photoUrl?: string;
+  token?: string;
+}
+
 export interface StatCardProps {
   title: string;
   value: string | number;
