@@ -24,6 +24,8 @@ import { formatCurrency, cn } from '@/src/lib/utils';
 import { STATUS_LABELS } from '@/src/services/agendaStorage';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { sendMessageDirectly, markConversationAsReadDirectly, ADMIN_PARTICIPANT_ID } from '@/src/services/chatStorage';
+import { getInitialChatBranding, ChatBrandingSettings } from '@/src/services/chatBrandingStorage';
+import { ChatAvatar } from '@/src/components/chat/ChatAvatar';
 
 interface ProfessionalPortalViewProps {
   professionals: Professional[];
@@ -54,6 +56,19 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const [branding, setBranding] = useState<ChatBrandingSettings>(() => getInitialChatBranding());
+
+  useEffect(() => {
+    const handleBrandingSync = () => {
+      setBranding(getInitialChatBranding());
+    };
+    window.addEventListener('salao-luxe-branding-sync', handleBrandingSync);
+    window.addEventListener('storage', handleBrandingSync);
+    return () => {
+      window.removeEventListener('salao-luxe-branding-sync', handleBrandingSync);
+      window.removeEventListener('storage', handleBrandingSync);
+    };
+  }, []);
 
   const proConvId = loggedProfessional ? `conv-prof-${loggedProfessional.id}` : null;
 
@@ -508,22 +523,22 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
 
       {/* TAB 4: CHAT COM A RECEPÇÃO / ADM */}
       {activeTab === 'chat' && loggedProfessional && (
-        <div className="bg-[#111111] border border-[#d4af37]/25 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[520px] animate-in fade-in">
+        <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[430px] max-h-[75vh] animate-in fade-in">
           {/* Header */}
-          <div className="p-4 bg-[#161616] border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/30 text-[#d4af37] flex items-center justify-center font-bold">
-                SL
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  Recepção & Gerência Salão Luxe
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="px-4 py-3 bg-[#121212] border-b border-[#d4af37]/15 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <ChatAvatar config={branding.receptionChat} type="reception" size="md" showStatusDot={false} />
+              <div className="min-w-0">
+                <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 truncate">
+                  <span className="truncate">{branding.receptionChat.name}</span>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold uppercase shrink-0">
+                    {branding.receptionChat.tagText || 'Ativo'}
+                  </span>
                 </h3>
-                <p className="text-[11px] text-neutral-400">Canal direto da equipe de profissionais</p>
+                <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate">Canal direto da equipe de profissionais</p>
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30">
+            <span className="px-2.5 py-1 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30 shrink-0 truncate max-w-[140px]">
               {loggedProfessional.name}
             </span>
           </div>

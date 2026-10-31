@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Store, Shield, Palette, Bell, HelpCircle, Save, CheckCircle2, Menu, Sliders } from 'lucide-react';
+import { Settings as SettingsIcon, Store, Shield, Palette, Bell, HelpCircle, Save, CheckCircle2, Menu, Sliders, Sparkles } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { PixConfig } from '@/src/types';
 import { getDefaultPixConfig, getDefaultSalonSettings, SalonSettings } from '@/src/services/pixService';
 import { MenuManager } from '@/src/components/admin/MenuManager';
 import { AppearanceManager } from '@/src/components/admin/AppearanceManager';
+import { ChatBrandingManager } from '@/src/components/admin/ChatBrandingManager';
 
 export const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dados' | 'menu' | 'aparencia' | 'seguranca'>('dados');
+  const [activeTab, setActiveTab] = useState<'dados' | 'menu' | 'aparencia' | 'atendimentos' | 'seguranca'>('dados');
 
   const [salonSettings, setSalonSettings] = useLocalStorage<SalonSettings>('salon_settings', getDefaultSalonSettings());
   const [pixConfig, setPixConfig] = useLocalStorage<PixConfig>('pix_config', getDefaultPixConfig());
@@ -61,6 +62,7 @@ export const Settings: React.FC = () => {
         <div className="lg:col-span-1 space-y-2">
           {[
             { id: 'dados', icon: Store, label: 'Dados do Salão' },
+            { id: 'atendimentos', icon: Sparkles, label: 'Chats & Atendimentos' },
             { id: 'menu', icon: Menu, label: 'Gerenciador do Menu' },
             { id: 'aparencia', icon: Sliders, label: 'Aparência & Layout' },
             { id: 'seguranca', icon: Shield, label: 'Segurança & Permissões' },
@@ -155,6 +157,10 @@ export const Settings: React.FC = () => {
                 </button>
               </div>
             </form>
+          )}
+
+          {activeTab === 'atendimentos' && (
+            <ChatBrandingManager />
           )}
 
           {activeTab === 'menu' && (

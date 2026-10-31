@@ -27,6 +27,8 @@ import {
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { cn } from '@/src/lib/utils';
+import { getInitialChatBranding, ChatBrandingSettings } from '@/src/services/chatBrandingStorage';
+import { ChatAvatar } from '@/src/components/chat/ChatAvatar';
 
 interface PublicChatProps {
   onBack?: () => void;
@@ -36,6 +38,19 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
   const [storedConversations, setStoredConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
+  const [branding, setBranding] = useState<ChatBrandingSettings>(() => getInitialChatBranding());
+
+  useEffect(() => {
+    const handleBrandingSync = () => {
+      setBranding(getInitialChatBranding());
+    };
+    window.addEventListener('salao-luxe-branding-sync', handleBrandingSync);
+    window.addEventListener('storage', handleBrandingSync);
+    return () => {
+      window.removeEventListener('salao-luxe-branding-sync', handleBrandingSync);
+      window.removeEventListener('storage', handleBrandingSync);
+    };
+  }, []);
 
   // Use a public client session or default visitor id
   const [publicClient, setPublicClient] = useState<Client>(() => clients[0] || {
@@ -149,32 +164,33 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Public Chat Header Banner */}
-      <div className="bg-gradient-to-r from-[#14120c] via-[#1c1810] to-[#0a0a0a] border border-[#d4af37]/25 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="bg-gradient-to-r from-[#14120c] via-[#1c1810] to-[#0a0a0a] border border-[#d4af37]/25 rounded-2xl p-4 sm:p-5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
           {onBack && (
             <button
               onClick={onBack}
-              className="p-2.5 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-[#d4af37] border border-white/10 rounded-2xl transition-all flex items-center gap-1.5 text-xs font-bold shrink-0"
+              className="p-2 sm:p-2.5 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-[#d4af37] border border-white/10 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shrink-0"
               title="Voltar / Recolher Atendimento"
             >
-              <ArrowLeft size={18} className="text-[#d4af37]" />
+              <ArrowLeft size={16} className="text-[#d4af37]" />
               <span className="hidden sm:inline">Voltar</span>
             </button>
           )}
 
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#d4af37] to-[#8a7122] flex items-center justify-center text-black font-extrabold shadow-md shadow-[#d4af37]/20 shrink-0">
-            <Headphones size={24} className="text-black" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Atendimento Luxe (Recepção)</h1>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 uppercase flex items-center gap-1">
+          <ChatAvatar config={branding.receptionChat} type="reception" size="lg" />
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight truncate">
+                {branding.receptionChat.name}
+              </h1>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 uppercase flex items-center gap-1 shrink-0">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                Online
+                {branding.receptionChat.tagText || 'Online'}
               </span>
             </div>
-            <p className="text-neutral-400 text-xs mt-0.5">
-              Atendimento humano e humanizado com especialistas e recepção do Salão Luxe.
+            <p className="text-neutral-400 text-xs mt-0.5 line-clamp-1">
+              {branding.receptionChat.subtitle}
             </p>
           </div>
         </div>
@@ -184,42 +200,40 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
           href="https://wa.me/5511999998888?text=Olá,%20gostaria%20de%20informações%20sobre%20atendimento%20no%20Salão%20Luxe."
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-900/30 shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-900/30 shrink-0 self-start md:self-auto"
         >
-          <MessageCircle size={16} />
-          <span>Atendimento via WhatsApp</span>
+          <MessageCircle size={15} />
+          <span>Atendimento WhatsApp</span>
           <ExternalLink size={12} />
         </a>
       </div>
 
-      {/* Main Chat Box Container */}
-      <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[420px] relative">
+      {/* Main Chat Box Container - Standardized compact dimensions */}
+      <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[430px] max-h-[75vh] relative">
         {/* Chat Sub-Header */}
-        <div className="bg-[#121212] border-b border-[#d4af37]/15 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] font-bold">
-              <Headphones size={20} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                Recepção & Equipe Luxe
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold uppercase">
-                  Ativo
+        <div className="bg-[#121212] border-b border-[#d4af37]/15 px-4 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <ChatAvatar config={branding.receptionChat} type="reception" size="md" showStatusDot={false} />
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 truncate">
+                <span className="truncate">{branding.receptionChat.name}</span>
+                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold uppercase shrink-0">
+                  {branding.receptionChat.tagText || 'Ativo'}
                 </span>
               </h3>
-              <p className="text-[11px] text-neutral-400">Canal oficial de atendimento humanizado</p>
+              <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate">{branding.receptionChat.subtitle}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
-            <span className="hidden sm:inline">Identificado como:</span>
+          <div className="flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
+            <span className="hidden md:inline text-[11px]">Cliente:</span>
             <select
               value={publicClient.id}
               onChange={(e) => {
                 const found = clients.find(c => c.id === e.target.value);
                 if (found) setPublicClient(found);
               }}
-              className="bg-[#1e1e1e] border border-white/10 rounded-lg px-2.5 py-1 text-white text-xs outline-none focus:border-[#d4af37]"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-white text-[11px] outline-none focus:border-[#d4af37] max-w-[130px] sm:max-w-[160px] truncate"
             >
               {clients.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>

@@ -11,7 +11,8 @@ import {
   MessageCircle,
   ExternalLink,
   Shield,
-  Send
+  Send,
+  X
 } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { 
@@ -36,6 +37,7 @@ import { initialProfessionalsList } from '@/src/components/Professionals';
 import { ChatSidebar } from './chat/ChatSidebar';
 import { ChatArea } from './chat/ChatArea';
 import { QuickRepliesModal } from './chat/QuickRepliesModal';
+import { ChatBrandingManager } from './admin/ChatBrandingManager';
 import { cn } from '@/src/lib/utils';
 
 export const Chat: React.FC = () => {
@@ -60,6 +62,7 @@ export const Chat: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'todas' | 'cliente' | 'profissional' | 'nao_lidas'>('todas');
   const [isQuickRepliesModalOpen, setIsQuickRepliesModalOpen] = useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [isBrandingModalOpen, setIsBrandingModalOpen] = useState(false);
   const [newChatSearch, setNewChatSearch] = useState('');
 
   // Keep first conversation selected if none is active on desktop
@@ -215,6 +218,15 @@ export const Chat: React.FC = () => {
 
         {/* Header Action Buttons */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsBrandingModalOpen(true)}
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all hover:border-[#d4af37]/40"
+            title="Personalizar fotos, zoom e enquadramento dos atendimentos"
+          >
+            <Sparkles size={16} className="text-[#d4af37]" />
+            <span>Personalizar Chats</span>
+          </button>
+
           <button
             onClick={() => setIsQuickRepliesModalOpen(true)}
             className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all hover:border-[#d4af37]/40"
@@ -403,6 +415,22 @@ export const Chat: React.FC = () => {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Personalização dos Atendimentos & Chats */}
+      {isBrandingModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+          <div className="w-full max-w-4xl max-h-[90vh] bg-[#0d0d0d] border border-[#d4af37]/30 rounded-3xl shadow-2xl overflow-y-auto p-4 sm:p-6 relative">
+            <button
+              onClick={() => setIsBrandingModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/10 transition-colors z-10"
+              title="Fechar"
+            >
+              <X size={20} />
+            </button>
+            <ChatBrandingManager />
           </div>
         </div>
       )}

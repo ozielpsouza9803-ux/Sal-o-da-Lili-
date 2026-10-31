@@ -411,20 +411,10 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Quick Install PWA Header Button */}
-          <button
-            onClick={() => setIsPWAInstallModalOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-[#d4af37]/40 px-3 py-2 rounded-xl text-xs font-bold transition-all"
-            title="Instalar Aplicativo PWA"
-          >
-            <Download size={14} className="text-[#d4af37]" />
-            <span>Instalar App</span>
-          </button>
-
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setCurrentPublicView('chat')}
-            className="relative p-2 text-neutral-400 hover:text-[#d4af37] transition-colors"
+            className="relative p-2.5 text-neutral-400 hover:text-[#d4af37] hover:bg-white/5 rounded-xl transition-all"
             title="Atendimento e Mensagens"
           >
             <Bell size={20} />

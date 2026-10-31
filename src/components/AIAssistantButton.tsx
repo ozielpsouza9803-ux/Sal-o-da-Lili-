@@ -5,6 +5,8 @@ import { Service, Product, PixConfig, ViewType } from '@/src/types';
 import { initialServicesList } from '@/src/components/Services';
 import { getInitialProducts } from '@/src/services/productStorage';
 import { formatCurrency } from '@/src/lib/utils';
+import { getInitialChatBranding, ChatBrandingSettings } from '@/src/services/chatBrandingStorage';
+import { ChatAvatar } from '@/src/components/chat/ChatAvatar';
 
 export interface SalonSettings {
   salonName: string;
@@ -36,6 +38,20 @@ interface Message {
 export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
+  const [branding, setBranding] = useState<ChatBrandingSettings>(() => getInitialChatBranding());
+
+  useEffect(() => {
+    const handleBrandingSync = () => {
+      setBranding(getInitialChatBranding());
+    };
+    window.addEventListener('salao-luxe-branding-sync', handleBrandingSync);
+    window.addEventListener('storage', handleBrandingSync);
+    return () => {
+      window.removeEventListener('salao-luxe-branding-sync', handleBrandingSync);
+      window.removeEventListener('storage', handleBrandingSync);
+    };
+  }, []);
+
   const [services] = useLocalStorage<Service[]>('services', initialServicesList);
   const [products] = useLocalStorage<Product[]>('products', getInitialProducts());
   const [settings] = useLocalStorage<SalonSettings>('salon_settings', {
@@ -144,75 +160,89 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-50 group flex items-center gap-2 bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#b8860b] text-black font-extrabold px-4 py-3 rounded-full shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:shadow-[0_0_30px_rgba(212,175,55,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 border border-[#fff8dc]"
-        title="Assistente IA Luxe"
+        className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 z-50 group flex items-center gap-2.5 bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#b8860b] text-black font-extrabold px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:shadow-[0_0_30px_rgba(212,175,55,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 border border-[#fff8dc]"
+        title={branding.aiAssistant.name}
       >
-        <div className="relative">
-          <Sparkles size={20} className="animate-spin-slow text-black" />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-600 rounded-full animate-ping" />
-        </div>
-        <span className="text-xs tracking-wider uppercase hidden sm:inline-block">
-          Assistente IA
+        <ChatAvatar 
+          config={branding.aiAssistant} 
+          type="ai" 
+          size="sm" 
+          showStatusIndicator={false} 
+        />
+        <span className="text-xs tracking-wider uppercase hidden sm:inline-block font-extrabold text-black">
+          {branding.aiAssistant.name}
         </span>
       </button>
 
-      {/* Floating Chat Modal */}
+      {/* Floating Chat Modal - Compact & Standardized */}
       {isOpen && (
-        <div className="fixed bottom-24 sm:bottom-28 right-2 sm:right-6 z-50 w-[95vw] sm:w-[380px] h-[520px] bg-[#0a0a0a] border border-[#d4af37]/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-20 sm:bottom-24 right-3 sm:right-6 z-50 w-[92vw] sm:w-[350px] md:w-[360px] h-[430px] max-h-[75vh] bg-[#0a0a0a] border border-[#d4af37]/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#121212] via-[#1c1810] to-[#121212] border-b border-[#d4af37]/20 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4af37] via-[#fff8dc] to-[#b8860b] flex items-center justify-center text-black font-extrabold shadow-[0_0_15px_rgba(212,175,55,0.4)] relative">
-                <Sparkles size={20} className="text-black animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  Assistente IA Luxe
-                  <span className="text-[10px] bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/30 px-1.5 py-0.2 rounded font-semibold uppercase">
-                    24/7
-                  </span>
+          <div className="bg-gradient-to-r from-[#121212] via-[#1a1710] to-[#121212] border-b border-[#d4af37]/20 p-3.5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <ChatAvatar 
+                config={branding.aiAssistant} 
+                type="ai" 
+                size="md" 
+              />
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5 truncate">
+                  <span className="truncate">{branding.aiAssistant.name}</span>
+                  {branding.aiAssistant.tagText && (
+                    <span 
+                      className="text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border shrink-0"
+                      style={{
+                        color: branding.aiAssistant.accentColor || '#d4af37',
+                        borderColor: `${branding.aiAssistant.accentColor || '#d4af37'}44`,
+                        backgroundColor: `${branding.aiAssistant.accentColor || '#d4af37'}18`,
+                      }}
+                    >
+                      {branding.aiAssistant.tagText}
+                    </span>
+                  )}
                 </h3>
-                <p className="text-[11px] text-neutral-400">Inteligência artificial avançada</p>
+                <p className="text-[11px] text-neutral-400 truncate">{branding.aiAssistant.subtitle}</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors shrink-0"
+              title="Fechar"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Quick Prompt Chips */}
-          <div className="p-2.5 bg-[#141414] border-b border-white/5 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
+          <div className="p-2 bg-[#121212] border-b border-white/5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs shrink-0">
             <button
               onClick={() => handleQuickQuestion('Quais os serviços mais procurados?')}
-              className="whitespace-nowrap px-3 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
+              className="whitespace-nowrap px-2.5 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
             >
               ✂️ Serviços
             </button>
             <button
               onClick={() => handleQuickQuestion('Como fazer um agendamento?')}
-              className="whitespace-nowrap px-3 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
+              className="whitespace-nowrap px-2.5 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
             >
               📅 Agendar
             </button>
             <button
               onClick={() => handleQuickQuestion('Qual a chave Pix do salão?')}
-              className="whitespace-nowrap px-3 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
+              className="whitespace-nowrap px-2.5 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
             >
               🔑 Pix
             </button>
             <button
               onClick={() => handleQuickQuestion('Produtos em estoque')}
-              className="whitespace-nowrap px-3 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
+              className="whitespace-nowrap px-2.5 py-1 bg-white/5 hover:bg-[#d4af37]/20 hover:text-[#d4af37] border border-white/10 hover:border-[#d4af37]/30 text-neutral-300 rounded-full transition-all text-[11px]"
             >
               🛍️ Produtos
             </button>
           </div>
 
-          {/* Messages Container */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 max-h-[300px]">
+          {/* Messages Container - Clean flex-1 */}
+          <div className="flex-1 p-3.5 overflow-y-auto space-y-3 min-h-0">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -220,17 +250,18 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate
               >
                 <div className="flex items-end gap-2 max-w-[85%]">
                   {msg.sender === 'ai' && (
-                    <div className="w-6 h-6 rounded-full bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/30 flex items-center justify-center shrink-0 mb-1">
-                      <Bot size={13} />
+                    <div className="shrink-0 mb-0.5">
+                      <ChatAvatar config={branding.aiAssistant} type="ai" size="sm" showStatusIndicator={false} />
                     </div>
                   )}
 
                   <div
                     className={`p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                       msg.sender === 'user'
-                        ? 'bg-[#d4af37] text-black font-medium rounded-br-none shadow-sm'
-                        : 'bg-[#181818] border border-white/10 text-neutral-200 rounded-bl-none'
+                        ? 'text-black font-semibold rounded-br-none shadow-sm'
+                        : 'bg-[#161616] border border-white/10 text-neutral-200 rounded-bl-none'
                     }`}
+                    style={msg.sender === 'user' ? { backgroundColor: branding.aiAssistant.accentColor || '#d4af37' } : undefined}
                   >
                     {msg.text}
 
@@ -264,21 +295,23 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate
               e.preventDefault();
               processUserInput(input);
             }}
-            className="p-3 bg-[#111111] border-t border-white/10 flex items-center gap-2"
+            className="p-2.5 bg-[#101010] border-t border-white/10 flex items-center gap-2 shrink-0"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Digite sua dúvida..."
-              className="flex-1 bg-white/5 border border-white/10 focus:border-[#d4af37]/50 text-white rounded-xl px-3.5 py-2 text-xs outline-none placeholder:text-neutral-500 transition-all"
+              className="flex-1 bg-white/5 border border-white/10 focus:border-[#d4af37]/50 text-white rounded-xl px-3 py-2 text-xs outline-none placeholder:text-neutral-500 transition-all"
             />
             <button
               type="submit"
               disabled={!input.trim()}
-              className="p-2 bg-[#d4af37] disabled:opacity-40 text-black font-bold rounded-xl hover:bg-[#b8860b] transition-colors"
+              className="p-2 disabled:opacity-40 text-black font-bold rounded-xl transition-all shadow-sm"
+              style={{ backgroundColor: branding.aiAssistant.accentColor || '#d4af37' }}
+              title="Enviar"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </form>
         </div>
