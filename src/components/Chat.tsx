@@ -35,7 +35,7 @@ import {
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { initialProfessionalsList } from '@/src/components/Professionals';
-import { ChatSidebar } from './chat/ChatSidebar';
+import { ChatSidebar, SidebarFilterType } from './chat/ChatSidebar';
 import { ChatArea } from './chat/ChatArea';
 import { QuickRepliesModal } from './chat/QuickRepliesModal';
 import { ChatBrandingManager } from './admin/ChatBrandingManager';
@@ -60,7 +60,7 @@ export const Chat: React.FC = () => {
   });
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'todas' | 'cliente' | 'profissional' | 'nao_lidas'>('todas');
+  const [activeFilter, setActiveFilter] = useState<SidebarFilterType>('todas');
   const [isQuickRepliesModalOpen, setIsQuickRepliesModalOpen] = useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [isBrandingModalOpen, setIsBrandingModalOpen] = useState(false);

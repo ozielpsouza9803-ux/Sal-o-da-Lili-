@@ -70,8 +70,15 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
     };
   }, []);
 
-  const proConvId = loggedProfessional ? `conv-prof-${loggedProfessional.id}` : null;
+  const defaultProConvId = loggedProfessional ? `conv-prof-${loggedProfessional.id}` : null;
+  const [selectedProConvId, setSelectedProConvId] = useState<string | null>(null);
   const [conversations, setConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
+
+  useEffect(() => {
+    if (defaultProConvId && !selectedProConvId) {
+      setSelectedProConvId(defaultProConvId);
+    }
+  }, [defaultProConvId, selectedProConvId]);
 
   useEffect(() => {
     const handleSync = () => {
@@ -93,24 +100,40 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
     };
   }, [setMessages, setConversations]);
 
-  const proUnreadCount = useMemo(() => {
-    if (!loggedProfessional) return 0;
-    const conv = conversations.find(c => c.id === `conv-prof-${loggedProfessional.id}`);
-    return conv?.unreadCountParticipant || 0;
+  // Direct client conversations assigned to this professional
+  const assignedClientConvs = useMemo(() => {
+    if (!loggedProfessional) return [];
+    return conversations.filter(c => c.assignedProfessionalId === loggedProfessional.id);
   }, [conversations, loggedProfessional]);
 
+  const activeProConv = useMemo(() => {
+    const targetId = selectedProConvId || defaultProConvId;
+    if (!targetId) return null;
+    return conversations.find(c => c.id === targetId) || null;
+  }, [selectedProConvId, defaultProConvId, conversations]);
+
+  const proUnreadCount = useMemo(() => {
+    if (!loggedProfessional) return 0;
+    const receptionConv = conversations.find(c => c.id === `conv-prof-${loggedProfessional.id}`);
+    const receptionUnread = receptionConv?.unreadCountParticipant || 0;
+    const clientUnreadSum = assignedClientConvs.reduce((acc, curr) => acc + (curr.unreadCountParticipant || 0), 0);
+    return receptionUnread + clientUnreadSum;
+  }, [conversations, loggedProfessional, assignedClientConvs]);
+
+  const activeConvId = selectedProConvId || defaultProConvId;
+
   useEffect(() => {
-    if (activeTab === 'chat' && proConvId) {
-      markConversationAsReadDirectly(proConvId, 'participant');
+    if (activeTab === 'chat' && activeConvId) {
+      markConversationAsReadDirectly(activeConvId, 'participant');
     }
-  }, [activeTab, proConvId, messages.length]);
+  }, [activeTab, activeConvId, messages.length]);
 
   const proMessages = useMemo(() => {
-    if (!proConvId) return [];
+    if (!activeConvId) return [];
     return messages
-      .filter(m => m.conversationId === proConvId)
+      .filter(m => m.conversationId === activeConvId)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [messages, proConvId]);
+  }, [messages, activeConvId]);
 
   useEffect(() => {
     if (activeTab === 'chat') {
@@ -543,49 +566,80 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
         </div>
       )}
 
-      {/* TAB 4: CHAT COM A RECEPÇÃO / ADM */}
+      {/* TAB 4: CHAT COM A RECEPÇÃO / ADM E CLIENTES DIRETO */}
       {activeTab === 'chat' && loggedProfessional && (
-        <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[430px] max-h-[75vh] animate-in fade-in">
-          {/* Header */}
-          <div className="px-4 py-3 bg-[#121212] border-b border-[#d4af37]/15 flex items-center justify-between gap-2">
+        <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[450px] max-h-[75vh] animate-in fade-in">
+          {/* Sub-Header & Selector */}
+          <div className="px-4 py-3 bg-[#121212] border-b border-[#d4af37]/15 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-3 min-w-0">
               <ChatAvatar config={branding.receptionChat} type="reception" size="md" showStatusDot={false} />
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h3 className="text-xs sm:text-sm font-bold text-white truncate">
-                    {branding.receptionChat.name}
+                    {activeProConv?.participantName || branding.receptionChat.name}
                   </h3>
                   <span className="flex items-center gap-1 text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-semibold uppercase shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {branding.receptionChat.onlineStatusText || 'Online'}
+                    Ativo
                   </span>
                 </div>
-                <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-0.5">Canal direto da equipe de profissionais</p>
+                <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-0.5">
+                  {activeProConv?.assignedType === 'profissional_direto'
+                    ? `Atendimento Direto com Cliente`
+                    : 'Canal direto com Recepção & Gerência'}
+                </p>
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30 shrink-0 truncate max-w-[140px]">
-              {loggedProfessional.name}
-            </span>
+
+            {/* Conversation Switcher for Professional */}
+            <div className="flex items-center gap-1.5 text-xs shrink-0">
+              <span className="text-[10px] text-neutral-400 font-semibold uppercase hidden md:inline">Conversa:</span>
+              <select
+                value={activeConvId || ''}
+                onChange={(e) => setSelectedProConvId(e.target.value)}
+                className="bg-[#1a1a1a] border border-[#d4af37]/40 text-[#d4af37] font-semibold rounded-lg px-2.5 py-1 text-[11px] outline-none focus:border-[#d4af37] max-w-[200px] truncate"
+              >
+                <option value={`conv-prof-${loggedProfessional.id}`}>📢 Recepção (ADM / Gerência)</option>
+                {assignedClientConvs.map(c => (
+                  <option key={c.id} value={c.id}>
+                    👤 {c.participantName} (Cliente Direto)
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {/* Notice if taken over by ADM/Dono */}
+          {activeProConv?.takenOverByAdmin && (
+            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-amber-300 text-[11px] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+              <span>
+                ⚡ Atendimento sob gestão da Gerência ({activeProConv.takenOverByRole === 'dono' ? 'Dono do Salão' : 'ADM Recepção'}). Histórico atualizado em tempo real.
+              </span>
+            </div>
+          )}
 
           {/* Messages Feed */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3">
             {proMessages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
                 <MessageSquare size={32} className="text-[#d4af37]" />
-                <h4 className="text-white font-bold text-sm">Comunicação Direta com a Recepção</h4>
+                <h4 className="text-white font-bold text-sm">Comunicação Inteligente Salão Luxe</h4>
                 <p className="text-neutral-400 text-xs max-w-xs">
-                  Envie mensagens, solicite encaixes, informe faltas de produtos ou fale com a gerência em tempo real.
+                  Envie mensagens, solicite orientações ou atenda clientes diretamente pelo seu painel profissional.
                 </p>
               </div>
             ) : (
               proMessages.map(msg => {
-                const isFromPro = msg.senderRole === 'profissional';
+                const isFromPro = msg.senderRole === 'profissional' && msg.senderId === loggedProfessional.id;
+                const isFromDono = msg.senderRole === 'dono';
+                const isFromAdmin = msg.senderRole === 'admin';
+
                 return (
                   <div key={msg.id} className={cn("flex flex-col", isFromPro ? "items-end" : "items-start")}>
                     <div className="max-w-[80%] space-y-1">
                       <span className="text-[10px] text-neutral-400 font-semibold px-1 block">
-                        {isFromPro ? 'Você (Equipe)' : 'Recepção / Gerência'}
+                        {isFromPro ? 'Você (Equipe)' : (isFromDono ? '👑 Dono do Salão' : isFromAdmin ? '🏛️ ADM Recepção' : `👤 ${msg.senderName}`)}
                       </span>
                       <div className={cn(
                         "p-3 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
@@ -610,13 +664,16 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (!chatInput.trim()) return;
+              if (!chatInput.trim() || !activeConvId) return;
+
+              const recipientId = activeProConv?.participantId || ADMIN_PARTICIPANT_ID;
+
               sendMessageDirectly({
-                conversationId: `conv-prof-${loggedProfessional.id}`,
+                conversationId: activeConvId,
                 senderId: loggedProfessional.id,
                 senderName: loggedProfessional.name,
                 senderRole: 'profissional',
-                recipientId: ADMIN_PARTICIPANT_ID,
+                recipientId: recipientId,
                 content: chatInput.trim(),
                 participantDetails: {
                   type: 'profissional',
@@ -633,7 +690,7 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder={`Mensagem para a recepção como ${loggedProfessional.name}...`}
+              placeholder={`Responder como ${loggedProfessional.name}...`}
               className="flex-1 bg-black/40 border border-white/10 focus:border-[#d4af37]/60 text-white text-xs rounded-xl px-3.5 py-2.5 outline-none placeholder:text-neutral-500"
             />
             <button

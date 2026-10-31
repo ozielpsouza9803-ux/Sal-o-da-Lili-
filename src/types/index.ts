@@ -366,7 +366,7 @@ export interface PixCharge {
 // ----------------------------------------------------
 // CHAT INTEGRADO
 // ----------------------------------------------------
-export type ChatParticipantType = 'cliente' | 'profissional' | 'admin';
+export type ChatParticipantType = 'cliente' | 'profissional' | 'admin' | 'dono';
 export type MessageStatus = 'enviada' | 'entregue' | 'lida';
 
 export interface ChatAttachment {
@@ -381,7 +381,7 @@ export interface ChatAttachment {
 export interface ChatMessage {
   id: string;
   conversationId: string;
-  senderId: string; // 'admin-luxe', client.id, or professional.id
+  senderId: string; // 'admin-luxe', 'dono-luxe', client.id, or professional.id
   senderName: string;
   senderRole: ChatParticipantType;
   senderPhotoUrl?: string;
@@ -395,6 +395,11 @@ export interface ChatMessage {
 export interface ChatConversation {
   id: string;
   type: 'cliente' | 'profissional';
+  assignedType?: 'recepcao_adm' | 'profissional_direto';
+  assignedProfessionalId?: string;
+  assignedProfessionalName?: string;
+  takenOverByAdmin?: boolean;
+  takenOverByRole?: 'admin' | 'dono';
   participantId: string;
   participantName: string;
   participantPhone?: string;
@@ -406,6 +411,7 @@ export interface ChatConversation {
   lastMessageTimestamp?: string;
   unreadCountAdmin: number;
   unreadCountParticipant: number;
+  unreadCountProfessional?: number;
   isOnline?: boolean;
   notes?: string;
   updatedAt: string;

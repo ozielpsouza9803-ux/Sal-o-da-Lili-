@@ -2,6 +2,8 @@ import { ChatConversation, ChatMessage, QuickReply, Client, Professional } from 
 
 export const ADMIN_PARTICIPANT_ID = 'admin-luxe';
 export const ADMIN_PARTICIPANT_NAME = 'Salão Luxe (Recepção / Gerência)';
+export const DONO_PARTICIPANT_ID = 'dono-luxe';
+export const DONO_PARTICIPANT_NAME = 'Dono do Salão Luxe';
 
 export const DEFAULT_QUICK_REPLIES: QuickReply[] = [
   {
@@ -129,6 +131,7 @@ export function syncConversationsWithRegisteredEntities(
       result.push({
         id: convId,
         type: 'cliente',
+        assignedType: 'recepcao_adm',
         participantId: client.id,
         participantName: client.name,
         participantPhone: client.phone,
@@ -162,6 +165,7 @@ export function syncConversationsWithRegisteredEntities(
       result.push({
         id: convId,
         type: 'profissional',
+        assignedType: 'recepcao_adm',
         participantId: prof.id,
         participantName: prof.name,
         participantPhotoUrl: prof.photoUrl,
@@ -235,14 +239,14 @@ export function sendMessageDirectly(params: {
   conversationId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'admin' | 'cliente' | 'profissional';
+  senderRole: 'admin' | 'dono' | 'cliente' | 'profissional';
   recipientId: string;
   content: string;
   attachment?: any;
   participantDetails?: Partial<ChatConversation>;
 }): { newMsg: ChatMessage; conversations: ChatConversation[]; messages: ChatMessage[] } {
   const timestamp = new Date().toISOString();
-  const isFromAdmin = params.senderRole === 'admin';
+  const isFromAdminOrDono = params.senderRole === 'admin' || params.senderRole === 'dono';
 
   const newMsg: ChatMessage = {
     id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -253,7 +257,7 @@ export function sendMessageDirectly(params: {
     recipientId: params.recipientId,
     content: params.content,
     attachment: params.attachment,
-    status: isFromAdmin ? 'entregue' : 'enviada',
+    status: isFromAdminOrDono ? 'entregue' : 'enviada',
     timestamp
   };
 
@@ -279,8 +283,8 @@ export function sendMessageDirectly(params: {
       ...params.participantDetails,
       lastMessage: snippet,
       lastMessageTimestamp: timestamp,
-      unreadCountAdmin: isFromAdmin ? 0 : (prevAdminUnread + 1),
-      unreadCountParticipant: isFromAdmin ? (prevPartUnread + 1) : 0,
+      unreadCountAdmin: isFromAdminOrDono ? 0 : (prevAdminUnread + 1),
+      unreadCountParticipant: isFromAdminOrDono ? (prevPartUnread + 1) : 0,
       updatedAt: timestamp
     };
   } else {
@@ -288,6 +292,9 @@ export function sendMessageDirectly(params: {
     const newConv: ChatConversation = {
       id: params.conversationId,
       type: details.type || (params.senderRole === 'profissional' ? 'profissional' : 'cliente'),
+      assignedType: details.assignedType || 'recepcao_adm',
+      assignedProfessionalId: details.assignedProfessionalId,
+      assignedProfessionalName: details.assignedProfessionalName,
       participantId: details.participantId || params.senderId,
       participantName: details.participantName || params.senderName,
       participantPhone: details.participantPhone,
@@ -297,8 +304,8 @@ export function sendMessageDirectly(params: {
       participantRoleDescription: details.participantRoleDescription || 'Cliente Salão Luxe',
       lastMessage: snippet,
       lastMessageTimestamp: timestamp,
-      unreadCountAdmin: isFromAdmin ? 0 : 1,
-      unreadCountParticipant: isFromAdmin ? 1 : 0,
+      unreadCountAdmin: isFromAdminOrDono ? 0 : 1,
+      unreadCountParticipant: isFromAdminOrDono ? 1 : 0,
       isOnline: true,
       updatedAt: timestamp
     };
@@ -311,6 +318,38 @@ export function sendMessageDirectly(params: {
   broadcastChatUpdate();
 
   return { newMsg, conversations: updatedConvs, messages: updatedMsgs };
+}
+
+export function takeOverConversation(conversationId: string, role: 'admin' | 'dono' = 'admin') {
+  if (typeof window === 'undefined') return;
+  const currentConvs = getStoredConversationsRaw();
+  const idx = currentConvs.findIndex(c => c.id === conversationId);
+  if (idx >= 0) {
+    const updatedConvs = [...currentConvs];
+    updatedConvs[idx] = {
+      ...updatedConvs[idx],
+      takenOverByAdmin: true,
+      takenOverByRole: role
+    };
+    localStorage.setItem('chat_conversations', JSON.stringify(updatedConvs));
+    broadcastChatUpdate();
+  }
+}
+
+export function handBackConversation(conversationId: string) {
+  if (typeof window === 'undefined') return;
+  const currentConvs = getStoredConversationsRaw();
+  const idx = currentConvs.findIndex(c => c.id === conversationId);
+  if (idx >= 0) {
+    const updatedConvs = [...currentConvs];
+    updatedConvs[idx] = {
+      ...updatedConvs[idx],
+      takenOverByAdmin: false,
+      takenOverByRole: undefined
+    };
+    localStorage.setItem('chat_conversations', JSON.stringify(updatedConvs));
+    broadcastChatUpdate();
+  }
 }
 
 export function markConversationAsReadDirectly(conversationId: string, role: 'admin' | 'participant') {
@@ -334,11 +373,11 @@ export function markConversationAsReadDirectly(conversationId: string, role: 'ad
   let changed = false;
   const updatedMsgs = currentMsgs.map(m => {
     if (m.conversationId === conversationId) {
-      if (role === 'admin' && m.senderRole !== 'admin' && m.status !== 'lida') {
+      if (role === 'admin' && (m.senderRole !== 'admin' && m.senderRole !== 'dono') && m.status !== 'lida') {
         changed = true;
         return { ...m, status: 'lida' as const };
       }
-      if (role === 'participant' && m.senderRole === 'admin' && m.status !== 'lida') {
+      if (role === 'participant' && (m.senderRole === 'admin' || m.senderRole === 'dono') && m.status !== 'lida') {
         changed = true;
         return { ...m, status: 'lida' as const };
       }

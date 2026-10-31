@@ -15,10 +15,12 @@ import {
   MessageCircle,
   Scissors,
   ArrowLeft,
-  Headphones
+  Headphones,
+  UserCheck,
+  ShieldCheck
 } from 'lucide-react';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { ChatMessage, ChatConversation, ChatAttachment, Client } from '@/src/types';
+import { ChatMessage, ChatConversation, ChatAttachment, Client, Professional } from '@/src/types';
 import { 
   ADMIN_PARTICIPANT_ID, 
   ADMIN_PARTICIPANT_NAME, 
@@ -27,6 +29,7 @@ import {
   getStoredMessages
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
+import { initialProfessionalsList } from '@/src/components/Professionals';
 import { cn } from '@/src/lib/utils';
 import { getInitialChatBranding, ChatBrandingSettings } from '@/src/services/chatBrandingStorage';
 import { ChatAvatar } from '@/src/components/chat/ChatAvatar';
@@ -38,6 +41,7 @@ interface PublicChatProps {
 
 export const PublicChat: React.FC<PublicChatProps> = ({ onBack, currentClient }) => {
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
+  const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
   const [storedConversations, setStoredConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
   const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', getStoredMessages());
   const [branding, setBranding] = useState<ChatBrandingSettings>(() => getInitialChatBranding());
@@ -73,7 +77,18 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack, currentClient })
     }
   }, [currentClient]);
 
-  const conversationId = `conv-client-${publicClient.id}`;
+  // Selected target: 'recepcao' or professional.id
+  const [selectedTargetId, setSelectedTargetId] = useState<string>('recepcao');
+
+  const selectedProfessional = useMemo(() => {
+    if (selectedTargetId === 'recepcao') return null;
+    return professionals.find(p => p.id === selectedTargetId) || null;
+  }, [selectedTargetId, professionals]);
+
+  const conversationId = selectedProfessional
+    ? `conv-client-pro-${publicClient.id}-${selectedProfessional.id}`
+    : `conv-client-${publicClient.id}`;
+
   const [inputMessage, setInputMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
@@ -147,22 +162,29 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack, currentClient })
       };
     }
 
+    const recipientId = selectedProfessional ? selectedProfessional.id : ADMIN_PARTICIPANT_ID;
+
     sendMessageDirectly({
       conversationId: conversationId,
       senderId: publicClient.id,
       senderName: publicClient.name,
       senderRole: 'cliente',
-      recipientId: ADMIN_PARTICIPANT_ID,
+      recipientId: recipientId,
       content: content,
       attachment: attachmentObj,
       participantDetails: {
         type: 'cliente',
+        assignedType: selectedProfessional ? 'profissional_direto' : 'recepcao_adm',
+        assignedProfessionalId: selectedProfessional?.id,
+        assignedProfessionalName: selectedProfessional?.name,
         participantId: publicClient.id,
         participantName: publicClient.name,
         participantPhone: publicClient.phone,
         participantEmail: publicClient.email,
         participantPhotoUrl: publicClient.photoUrl,
-        participantRoleDescription: 'Cliente Salão Luxe'
+        participantRoleDescription: selectedProfessional 
+          ? `Cliente c/ ${selectedProfessional.name}` 
+          : 'Cliente Salão Luxe'
       }
     });
 
@@ -226,44 +248,68 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack, currentClient })
       {/* Main Chat Box Container - Standardized compact dimensions */}
       <div className="bg-[#0a0a0a] border border-[#d4af37]/25 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[430px] max-h-[75vh] relative">
         {/* Chat Sub-Header */}
-        <div className="bg-[#121212] border-b border-[#d4af37]/15 px-4 py-3 flex items-center justify-between gap-2">
+        <div className="bg-[#121212] border-b border-[#d4af37]/15 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-3 min-w-0">
-            <ChatAvatar config={branding.receptionChat} type="reception" size="md" showStatusDot={false} />
+            {selectedProfessional ? (
+              <div className="w-9 h-9 rounded-full bg-[#d4af37]/20 border border-[#d4af37] overflow-hidden flex items-center justify-center text-xs font-bold text-[#d4af37] shrink-0">
+                {selectedProfessional.photoUrl ? (
+                  <img src={selectedProfessional.photoUrl} alt={selectedProfessional.name} className="w-full h-full object-cover" />
+                ) : (
+                  selectedProfessional.name.substring(0, 2).toUpperCase()
+                )}
+              </div>
+            ) : (
+              <ChatAvatar config={branding.receptionChat} type="reception" size="md" showStatusDot={false} />
+            )}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="text-xs sm:text-sm font-bold text-white truncate">
-                  {branding.receptionChat.name}
+                  {selectedProfessional ? selectedProfessional.name : branding.receptionChat.name}
                 </h3>
                 <span className="flex items-center gap-1 text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-semibold uppercase shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {branding.receptionChat.onlineStatusText || 'Online'}
+                  {selectedProfessional ? selectedProfessional.role : (branding.receptionChat.onlineStatusText || 'Online')}
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-0.5">{branding.receptionChat.subtitle}</p>
+              <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-0.5">
+                {selectedProfessional ? `Atendimento Direto • ${selectedProfessional.specialties.join(', ')}` : branding.receptionChat.subtitle}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap text-xs text-neutral-400 shrink-0">
+            {/* Target Professional / Reception Selector */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-neutral-400 font-semibold uppercase hidden md:inline">Atendimento:</span>
+              <select
+                value={selectedTargetId}
+                onChange={(e) => setSelectedTargetId(e.target.value)}
+                className="bg-[#1a1a1a] border border-[#d4af37]/40 text-[#d4af37] font-semibold rounded-lg px-2 py-1 text-[11px] outline-none focus:border-[#d4af37] max-w-[170px] truncate"
+              >
+                <option value="recepcao">🏛️ Recepção (ADM)</option>
+                {professionals.map(p => (
+                  <option key={p.id} value={p.id}>✂️ {p.name} ({p.role})</option>
+                ))}
+              </select>
+            </div>
+
             {currentClient ? (
-              <span className="px-2.5 py-1 bg-[#1a1a1a] border border-[#d4af37]/30 text-[#d4af37] font-semibold text-[11px] rounded-lg truncate max-w-[150px]">
+              <span className="px-2 py-0.5 bg-[#1a1a1a] border border-white/10 text-neutral-300 font-semibold text-[11px] rounded-lg truncate max-w-[130px]">
                 {publicClient.name}
               </span>
             ) : (
-              <>
-                <span className="hidden md:inline text-[11px]">Cliente:</span>
-                <select
-                  value={publicClient.id}
-                  onChange={(e) => {
-                    const found = clients.find(c => c.id === e.target.value);
-                    if (found) setPublicClient(found);
-                  }}
-                  className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-white text-[11px] outline-none focus:border-[#d4af37] max-w-[130px] sm:max-w-[160px] truncate"
-                >
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </>
+              <select
+                value={publicClient.id}
+                onChange={(e) => {
+                  const found = clients.find(c => c.id === e.target.value);
+                  if (found) setPublicClient(found);
+                }}
+                className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-white text-[11px] outline-none focus:border-[#d4af37] max-w-[130px] truncate"
+              >
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
             )}
           </div>
         </div>

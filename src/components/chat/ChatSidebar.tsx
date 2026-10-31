@@ -15,14 +15,16 @@ import { ChatConversation } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 import { formatWhatsAppUrl } from '@/src/services/chatStorage';
 
+export type SidebarFilterType = 'todas' | 'cliente' | 'profissional' | 'direto_prof' | 'assumidos' | 'nao_lidas';
+
 interface ChatSidebarProps {
   conversations: ChatConversation[];
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  activeFilter: 'todas' | 'cliente' | 'profissional' | 'nao_lidas';
-  onFilterChange: (filter: 'todas' | 'cliente' | 'profissional' | 'nao_lidas') => void;
+  activeFilter: SidebarFilterType;
+  onFilterChange: (filter: SidebarFilterType) => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -38,6 +40,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const totalCount = conversations.length;
   const clientsCount = conversations.filter(c => c.type === 'cliente').length;
   const profsCount = conversations.filter(c => c.type === 'profissional').length;
+  const directProCount = conversations.filter(c => Boolean(c.assignedProfessionalName)).length;
+  const takenOverCount = conversations.filter(c => Boolean(c.takenOverByAdmin)).length;
   const unreadCount = conversations.filter(c => c.unreadCountAdmin > 0).length;
 
   // Filtered list
@@ -45,6 +49,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     // Type filter
     if (activeFilter === 'cliente' && conv.type !== 'cliente') return false;
     if (activeFilter === 'profissional' && conv.type !== 'profissional') return false;
+    if (activeFilter === 'direto_prof' && !conv.assignedProfessionalName) return false;
+    if (activeFilter === 'assumidos' && !conv.takenOverByAdmin) return false;
     if (activeFilter === 'nao_lidas' && conv.unreadCountAdmin === 0) return false;
 
     // Search query
@@ -54,7 +60,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       const matchPhone = (conv.participantPhone || '').toLowerCase().includes(q);
       const matchEmail = (conv.participantEmail || '').toLowerCase().includes(q);
       const matchLastMsg = (conv.lastMessage || '').toLowerCase().includes(q);
-      return matchName || matchPhone || matchEmail || matchLastMsg;
+      const matchProName = (conv.assignedProfessionalName || '').toLowerCase().includes(q);
+      return matchName || matchPhone || matchEmail || matchLastMsg || matchProName;
     }
 
     return true;
@@ -137,6 +144,42 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               activeFilter === 'cliente' ? "bg-black/20 text-black font-bold" : "bg-white/10 text-neutral-300"
             )}>
               {clientsCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => onFilterChange('direto_prof')}
+            className={cn(
+              "px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
+              activeFilter === 'direto_prof'
+                ? "bg-purple-500 text-white font-semibold shadow-sm"
+                : "bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <span>Direto c/ Profissional</span>
+            <span className={cn(
+              "text-[10px] px-1.5 py-0.2 rounded-full",
+              activeFilter === 'direto_prof' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-neutral-300"
+            )}>
+              {directProCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => onFilterChange('assumidos')}
+            className={cn(
+              "px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
+              activeFilter === 'assumidos'
+                ? "bg-amber-500 text-black font-semibold shadow-sm"
+                : "bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <span>Assumidos p/ ADM</span>
+            <span className={cn(
+              "text-[10px] px-1.5 py-0.2 rounded-full",
+              activeFilter === 'assumidos' ? "bg-black/20 text-black font-bold" : "bg-white/10 text-neutral-300"
+            )}>
+              {takenOverCount}
             </span>
           </button>
 

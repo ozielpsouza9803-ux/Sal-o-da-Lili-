@@ -13,7 +13,10 @@ import {
   UserCheck, 
   Download,
   Info,
-  Repeat
+  Repeat,
+  Zap,
+  RotateCcw,
+  Crown
 } from 'lucide-react';
 import { 
   ChatConversation, 
@@ -26,6 +29,10 @@ import { cn } from '@/src/lib/utils';
 import { 
   ADMIN_PARTICIPANT_ID, 
   ADMIN_PARTICIPANT_NAME, 
+  DONO_PARTICIPANT_ID,
+  DONO_PARTICIPANT_NAME,
+  takeOverConversation,
+  handBackConversation,
   formatWhatsAppUrl 
 } from '@/src/services/chatStorage';
 import { ChatInput } from './ChatInput';
@@ -51,9 +58,10 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onMarkAsRead
 }) => {
   // Mode: who is typing in this session?
-  // By default: 'admin' (Salão Luxe Recepção)
+  // By default: 'admin' (Salão Luxe Recepção / Dono)
   // Can be switched to 'participant' (e.g. client or pro) to test bidirectional conversation!
   const [activeSenderMode, setActiveSenderMode] = useState<'admin' | 'participant'>('admin');
+  const [adminIdentity, setAdminIdentity] = useState<'admin' | 'dono'>('admin');
   const [selectedAttachment, setSelectedAttachment] = useState<ChatAttachment | null>(null);
   const [showParticipantInfo, setShowParticipantInfo] = useState(false);
 
@@ -71,7 +79,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   const handleSendMessage = (content: string, attachment?: ChatAttachment) => {
     if (activeSenderMode === 'admin') {
-      onSendMessage(content, 'admin', ADMIN_PARTICIPANT_ID, ADMIN_PARTICIPANT_NAME, attachment);
+      if (adminIdentity === 'dono') {
+        onSendMessage(content, 'dono', DONO_PARTICIPANT_ID, DONO_PARTICIPANT_NAME, attachment);
+      } else {
+        onSendMessage(content, 'admin', ADMIN_PARTICIPANT_ID, ADMIN_PARTICIPANT_NAME, attachment);
+      }
     } else {
       const role: ChatParticipantType = conversation.type === 'cliente' ? 'cliente' : 'profissional';
       onSendMessage(content, role, conversation.participantId, conversation.participantName, attachment);
@@ -121,17 +133,17 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const waUrl = formatWhatsAppUrl(conversation.participantWhatsapp || conversation.participantPhone);
 
   const currentSenderName = activeSenderMode === 'admin' 
-    ? 'Salão Luxe (Recepção)' 
+    ? (adminIdentity === 'dono' ? DONO_PARTICIPANT_NAME : ADMIN_PARTICIPANT_NAME) 
     : conversation.participantName;
 
-  const currentSenderRole = activeSenderMode === 'admin'
-    ? 'admin'
+  const currentSenderRole: ChatParticipantType = activeSenderMode === 'admin'
+    ? adminIdentity
     : (conversation.type === 'cliente' ? 'cliente' : 'profissional');
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#070707] overflow-hidden relative">
       {/* Chat Header */}
-      <div className="p-4 bg-[#0a0a0a] border-b border-[#d4af37]/15 flex items-center justify-between gap-3 shrink-0 z-10">
+      <div className="p-4 bg-[#0a0a0a] border-b border-[#d4af37]/15 flex items-center justify-between gap-3 shrink-0 z-10 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-3 min-w-0">
           {onBackToList && (
             <button
@@ -173,6 +185,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               )}>
                 {conversation.type === 'profissional' ? 'Equipe Luxe' : 'Cliente'}
               </span>
+
+              {conversation.assignedProfessionalName && (
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] bg-purple-500/15 text-purple-300 border border-purple-500/30 font-semibold truncate">
+                  Profissional: {conversation.assignedProfessionalName}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-neutral-400 truncate flex items-center gap-2">
               <span>{conversation.participantRoleDescription || 'Ativo'}</span>
@@ -188,18 +206,51 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
         {/* Action Header Tools */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Perspective switch toggle for testing */}
-          <div className="hidden sm:flex items-center gap-1.5 bg-[#141414] border border-[#d4af37]/25 rounded-xl px-2.5 py-1.5 text-xs">
-            <span className="text-[11px] text-neutral-400">Responder como:</span>
+          {/* Identity & Perspective switcher for ADM */}
+          {activeSenderMode === 'admin' ? (
+            <div className="flex items-center gap-1 bg-[#141414] border border-[#d4af37]/30 rounded-xl p-1 text-xs">
+              <button
+                onClick={() => setAdminIdentity('admin')}
+                className={cn(
+                  "px-2 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1",
+                  adminIdentity === 'admin'
+                    ? "bg-[#d4af37] text-black shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                )}
+                title="Responder identificado como Recepção / Gerência"
+              >
+                <span>ADM</span>
+              </button>
+              <button
+                onClick={() => setAdminIdentity('dono')}
+                className={cn(
+                  "px-2 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1",
+                  adminIdentity === 'dono'
+                    ? "bg-[#d4af37] text-black shadow-sm"
+                    : "text-neutral-400 hover:text-white"
+                )}
+                title="Responder identificado como Dono do Salão"
+              >
+                <Crown size={12} />
+                <span>Dono</span>
+              </button>
+              <button
+                onClick={() => setActiveSenderMode('participant')}
+                className="p-1 text-neutral-400 hover:text-[#d4af37]"
+                title="Simular resposta do participante"
+              >
+                <Repeat size={13} />
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => setActiveSenderMode(activeSenderMode === 'admin' ? 'participant' : 'admin')}
-              className="flex items-center gap-1 text-[#d4af37] font-semibold hover:underline"
-              title="Alternar remetente para testar envio bidirecional"
+              onClick={() => setActiveSenderMode('admin')}
+              className="flex items-center gap-1 px-2.5 py-1 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 rounded-xl text-xs font-bold"
             >
               <Repeat size={12} />
-              <span>{activeSenderMode === 'admin' ? 'Recepção (Admin)' : conversation.participantName}</span>
+              <span>Modo ADM</span>
             </button>
-          </div>
+          )}
 
           {/* WhatsApp Direct Action */}
           {waUrl && (
@@ -223,6 +274,58 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
           >
             <Info size={18} />
           </button>
+        </div>
+      </div>
+
+      {/* ADM Takeover & Control Banner */}
+      <div className="bg-[#12100a] border-b border-[#d4af37]/20 px-4 py-2 flex items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 text-neutral-300 min-w-0">
+          <Zap size={14} className="text-[#d4af37] shrink-0" />
+          {conversation.takenOverByAdmin ? (
+            <span className="truncate">
+              ⚡ Atendimento sob gestão da Gerência (<strong className="text-[#d4af37]">{conversation.takenOverByRole === 'dono' ? 'Dono do Salão' : 'ADM Recepção'}</strong>).
+            </span>
+          ) : conversation.assignedProfessionalName ? (
+            <span className="truncate">
+              💬 Atendimento atribuído a <strong className="text-purple-300">{conversation.assignedProfessionalName}</strong>.
+            </span>
+          ) : (
+            <span className="truncate">
+              🏛️ Atendimento Geral da Recepção.
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {conversation.takenOverByAdmin ? (
+            <button
+              onClick={() => handBackConversation(conversation.id)}
+              className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-neutral-300 border border-white/20 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
+              title="Devolver atendimento ao profissional"
+            >
+              <RotateCcw size={12} />
+              <span>Devolver p/ Equipe</span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => takeOverConversation(conversation.id, 'admin')}
+                className="px-2.5 py-1 bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/40 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
+                title="Assumir conversa como ADM"
+              >
+                <Zap size={12} />
+                <span>Assumir (ADM)</span>
+              </button>
+              <button
+                onClick={() => takeOverConversation(conversation.id, 'dono')}
+                className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
+                title="Assumir conversa como Dono"
+              >
+                <Crown size={12} />
+                <span>Assumir (Dono)</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -281,14 +384,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
               {/* Messages in this date */}
               {group.items.map((msg) => {
-                const isAdmin = msg.senderRole === 'admin';
+                const isFromAdminOrDono = msg.senderRole === 'admin' || msg.senderRole === 'dono';
 
                 return (
                   <div
                     key={msg.id}
                     className={cn(
                       "flex flex-col max-w-[85%] sm:max-w-[70%]",
-                      isAdmin ? "ml-auto items-end" : "mr-auto items-start"
+                      isFromAdminOrDono ? "ml-auto items-end" : "mr-auto items-start"
                     )}
                   >
                     {/* Sender Label */}
@@ -298,11 +401,15 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       </span>
                       <span className={cn(
                         "text-[9px] uppercase px-1.5 py-0.2 rounded font-bold",
-                        isAdmin 
-                          ? "bg-[#d4af37]/20 text-[#d4af37]" 
+                        msg.senderRole === 'dono'
+                          ? "bg-amber-500/25 text-amber-300 border border-amber-500/40"
+                          : msg.senderRole === 'admin'
+                          ? "bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/30"
+                          : msg.senderRole === 'profissional'
+                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                           : "bg-white/10 text-neutral-300"
                       )}>
-                        {isAdmin ? 'Salão' : (msg.senderRole === 'profissional' ? 'Equipe' : 'Cliente')}
+                        {msg.senderRole === 'dono' ? '👑 Dono' : msg.senderRole === 'admin' ? '🏛️ ADM' : (msg.senderRole === 'profissional' ? '✂️ Equipe' : '👤 Cliente')}
                       </span>
                     </div>
 
@@ -310,7 +417,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                     <div
                       className={cn(
                         "rounded-2xl p-3.5 shadow-md text-xs sm:text-sm leading-relaxed",
-                        isAdmin
+                        isFromAdminOrDono
                           ? "bg-gradient-to-br from-[#1c180a] to-[#121212] border border-[#d4af37]/35 text-white rounded-tr-none"
                           : "bg-[#181818] border border-white/10 text-white rounded-tl-none"
                       )}
@@ -361,7 +468,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                       {/* Footer time & read receipts */}
                       <div className="flex items-center justify-end gap-1.5 mt-1 text-[10px] text-neutral-400 select-none">
                         <span>{formatMessageTime(msg.timestamp)}</span>
-                        {isAdmin && (
+                        {isFromAdminOrDono && (
                           <span title={msg.status === 'lida' ? 'Lida' : msg.status === 'entregue' ? 'Entregue' : 'Enviada'}>
                             {msg.status === 'lida' ? (
                               <CheckCheck size={14} className="text-[#d4af37]" />
