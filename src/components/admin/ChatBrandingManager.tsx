@@ -354,13 +354,13 @@ export const ChatBrandingManager: React.FC = () => {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                Badge / Etiqueta de Status
+                Indicador de Disponibilidade
               </label>
               <input
                 type="text"
-                value={currentConfig.tagText}
-                onChange={(e) => updateCurrentConfig({ tagText: e.target.value })}
-                placeholder="Ex: 24/7 VIP"
+                value={currentConfig.onlineStatusText}
+                onChange={(e) => updateCurrentConfig({ onlineStatusText: e.target.value })}
+                placeholder="Ex: Online, Disponível, Ativo"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#d4af37]/60"
               />
             </div>

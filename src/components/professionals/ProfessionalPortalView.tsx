@@ -529,13 +529,16 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
             <div className="flex items-center gap-3 min-w-0">
               <ChatAvatar config={branding.receptionChat} type="reception" size="md" showStatusDot={false} />
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 truncate">
-                  <span className="truncate">{branding.receptionChat.name}</span>
-                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold uppercase shrink-0">
-                    {branding.receptionChat.tagText || 'Ativo'}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-xs sm:text-sm font-bold text-white truncate">
+                    {branding.receptionChat.name}
+                  </h3>
+                  <span className="flex items-center gap-1 text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-semibold uppercase shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {branding.receptionChat.onlineStatusText || 'Online'}
                   </span>
-                </h3>
-                <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate">Canal direto da equipe de profissionais</p>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-0.5">Canal direto da equipe de profissionais</p>
               </div>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-bold uppercase border border-[#d4af37]/30 shrink-0 truncate max-w-[140px]">

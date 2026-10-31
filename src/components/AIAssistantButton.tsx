@@ -186,22 +186,16 @@ export const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ onNavigate
                 size="md" 
               />
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white flex items-center gap-1.5 truncate">
-                  <span className="truncate">{branding.aiAssistant.name}</span>
-                  {branding.aiAssistant.tagText && (
-                    <span 
-                      className="text-[9px] font-bold px-1.5 py-0.2 rounded uppercase border shrink-0"
-                      style={{
-                        color: branding.aiAssistant.accentColor || '#d4af37',
-                        borderColor: `${branding.aiAssistant.accentColor || '#d4af37'}44`,
-                        backgroundColor: `${branding.aiAssistant.accentColor || '#d4af37'}18`,
-                      }}
-                    >
-                      {branding.aiAssistant.tagText}
-                    </span>
-                  )}
-                </h3>
-                <p className="text-[11px] text-neutral-400 truncate">{branding.aiAssistant.subtitle}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-xs sm:text-sm font-bold text-white truncate">
+                    {branding.aiAssistant.name}
+                  </h3>
+                  <span className="flex items-center gap-1 text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {branding.aiAssistant.onlineStatusText || 'Disponível'}
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-neutral-400 truncate mt-0.5">{branding.aiAssistant.subtitle}</p>
               </div>
             </div>
             <button
