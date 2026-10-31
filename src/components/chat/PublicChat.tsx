@@ -23,7 +23,8 @@ import {
   ADMIN_PARTICIPANT_ID, 
   ADMIN_PARTICIPANT_NAME, 
   sendMessageDirectly,
-  markConversationAsReadDirectly
+  markConversationAsReadDirectly,
+  getStoredMessages
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { cn } from '@/src/lib/utils';
@@ -32,12 +33,13 @@ import { ChatAvatar } from '@/src/components/chat/ChatAvatar';
 
 interface PublicChatProps {
   onBack?: () => void;
+  currentClient?: Client;
 }
 
-export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
+export const PublicChat: React.FC<PublicChatProps> = ({ onBack, currentClient }) => {
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
   const [storedConversations, setStoredConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
-  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
+  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', getStoredMessages());
   const [branding, setBranding] = useState<ChatBrandingSettings>(() => getInitialChatBranding());
 
   useEffect(() => {
@@ -52,8 +54,8 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
     };
   }, []);
 
-  // Use a public client session or default visitor id
-  const [publicClient, setPublicClient] = useState<Client>(() => clients[0] || {
+  // Use currentClient if passed, or default to clients[0] / visitor
+  const [publicClient, setPublicClient] = useState<Client>(() => currentClient || clients[0] || {
     id: 'cli-public-visitor',
     name: 'Visitante Luxe',
     email: 'visitante@salaoluxe.com',
@@ -64,6 +66,12 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+
+  useEffect(() => {
+    if (currentClient) {
+      setPublicClient(currentClient);
+    }
+  }, [currentClient]);
 
   const conversationId = `conv-client-${publicClient.id}`;
   const [inputMessage, setInputMessage] = useState('');
@@ -104,6 +112,13 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [clientMessages]);
+
+  // Mark messages as read by participant when viewed
+  useEffect(() => {
+    if (conversationId) {
+      markConversationAsReadDirectly(conversationId, 'participant');
+    }
+  }, [conversationId, clientMessages.length]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -229,19 +244,27 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
           </div>
 
           <div className="flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
-            <span className="hidden md:inline text-[11px]">Cliente:</span>
-            <select
-              value={publicClient.id}
-              onChange={(e) => {
-                const found = clients.find(c => c.id === e.target.value);
-                if (found) setPublicClient(found);
-              }}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-white text-[11px] outline-none focus:border-[#d4af37] max-w-[130px] sm:max-w-[160px] truncate"
-            >
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            {currentClient ? (
+              <span className="px-2.5 py-1 bg-[#1a1a1a] border border-[#d4af37]/30 text-[#d4af37] font-semibold text-[11px] rounded-lg truncate max-w-[150px]">
+                {publicClient.name}
+              </span>
+            ) : (
+              <>
+                <span className="hidden md:inline text-[11px]">Cliente:</span>
+                <select
+                  value={publicClient.id}
+                  onChange={(e) => {
+                    const found = clients.find(c => c.id === e.target.value);
+                    if (found) setPublicClient(found);
+                  }}
+                  className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-white text-[11px] outline-none focus:border-[#d4af37] max-w-[130px] sm:max-w-[160px] truncate"
+                >
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
         </div>
 
@@ -284,7 +307,7 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
             </div>
           ) : (
             clientMessages.map(msg => {
-              const isFromClient = msg.senderRole === 'cliente';
+              const isFromClient = msg.senderRole === 'cliente' || msg.senderId === publicClient.id;
 
               return (
                 <div
@@ -293,7 +316,7 @@ export const PublicChat: React.FC<PublicChatProps> = ({ onBack }) => {
                 >
                   <div className={`max-w-[85%] sm:max-w-[70%] space-y-1`}>
                     <span className="text-[10px] text-neutral-500 font-medium px-1 block">
-                      {isFromClient ? 'Você' : msg.senderName || 'Salão Luxe Admin'}
+                      {isFromClient ? 'Você' : (msg.senderName || 'Salão Luxe (Recepção)')}
                     </span>
 
                     <div

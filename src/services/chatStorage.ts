@@ -48,6 +48,55 @@ export const DEFAULT_QUICK_REPLIES: QuickReply[] = [
   }
 ];
 
+export function getInitialMessages(): ChatMessage[] {
+  return [
+    {
+      id: 'msg-seed-1',
+      conversationId: 'conv-client-1',
+      senderId: '1',
+      senderName: 'Mariana Souza',
+      senderRole: 'cliente',
+      recipientId: ADMIN_PARTICIPANT_ID,
+      content: 'Olá! Gostaria de saber se o meu agendamento de mechas para amanhã às 14h está confirmado.',
+      status: 'lida',
+      timestamp: new Date(Date.now() - 3600000 * 3).toISOString()
+    },
+    {
+      id: 'msg-seed-2',
+      conversationId: 'conv-client-1',
+      senderId: ADMIN_PARTICIPANT_ID,
+      senderName: ADMIN_PARTICIPANT_NAME,
+      senderRole: 'admin',
+      recipientId: '1',
+      content: 'Olá, Mariana! Sim, seu horário está devidamente confirmado com a especialista Ana Oliveira. Estamos ansiosos para recebê-la!',
+      status: 'lida',
+      timestamp: new Date(Date.now() - 3600000 * 2).toISOString()
+    },
+    {
+      id: 'msg-seed-3',
+      conversationId: 'conv-prof-1',
+      senderId: '1',
+      senderName: 'Ricardo Silva',
+      senderRole: 'profissional',
+      recipientId: ADMIN_PARTICIPANT_ID,
+      content: 'Boa tarde! Preciso solicitar a reposição do óleo finalizador Luxe Gold na minha bancada.',
+      status: 'lida',
+      timestamp: new Date(Date.now() - 3600000 * 1).toISOString()
+    },
+    {
+      id: 'msg-seed-4',
+      conversationId: 'conv-prof-1',
+      senderId: ADMIN_PARTICIPANT_ID,
+      senderName: ADMIN_PARTICIPANT_NAME,
+      senderRole: 'admin',
+      recipientId: '1',
+      content: 'Perfeito, Ricardo! O estoque da gerência já separou as unidades para a sua bancada.',
+      status: 'lida',
+      timestamp: new Date(Date.now() - 1800000).toISOString()
+    }
+  ];
+}
+
 export function getInitialConversations(clients: Client[] = [], professionals: Professional[] = []): ChatConversation[] {
   return syncConversationsWithRegisteredEntities(clients, professionals, []);
 }
@@ -76,6 +125,7 @@ export function syncConversationsWithRegisteredEntities(
         participantRoleDescription: `Cliente (${client.status === 'ativo' ? 'Ativo' : 'Bloqueado'})`
       };
     } else {
+      const isClient1 = String(client.id) === '1';
       result.push({
         id: convId,
         type: 'cliente',
@@ -86,6 +136,8 @@ export function syncConversationsWithRegisteredEntities(
         participantEmail: client.email,
         participantPhotoUrl: client.photoUrl,
         participantRoleDescription: `Cliente (${client.status === 'ativo' ? 'Ativo' : 'Bloqueado'})`,
+        lastMessage: isClient1 ? 'Sim, seu horário está devidamente confirmado com a especialista Ana Oliveira.' : undefined,
+        lastMessageTimestamp: isClient1 ? new Date(Date.now() - 3600000 * 2).toISOString() : undefined,
         unreadCountAdmin: 0,
         unreadCountParticipant: 0,
         isOnline: true,
@@ -147,13 +199,18 @@ export function formatFileSize(bytes: number): string {
 }
 
 export function getStoredMessages(): ChatMessage[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return getInitialMessages();
   try {
     const raw = localStorage.getItem('chat_messages');
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) {
+      const initial = getInitialMessages();
+      localStorage.setItem('chat_messages', JSON.stringify(initial));
+      return initial;
+    }
+    return JSON.parse(raw);
   } catch (err) {
     console.error('Error reading chat_messages:', err);
-    return [];
+    return getInitialMessages();
   }
 }
 

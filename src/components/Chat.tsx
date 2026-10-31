@@ -30,7 +30,8 @@ import {
   ADMIN_PARTICIPANT_ID,
   ADMIN_PARTICIPANT_NAME,
   sendMessageDirectly,
-  markConversationAsReadDirectly
+  markConversationAsReadDirectly,
+  getStoredMessages
 } from '@/src/services/chatStorage';
 import { initialClientsList } from '@/src/components/Clients';
 import { initialProfessionalsList } from '@/src/components/Professionals';
@@ -45,7 +46,7 @@ export const Chat: React.FC = () => {
   const [clients] = useLocalStorage<Client[]>('clients', initialClientsList);
   const [professionals] = useLocalStorage<Professional[]>('professionals', initialProfessionalsList);
   const [storedConversations, setStoredConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
-  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
+  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', getStoredMessages());
   const [quickReplies, setQuickReplies] = useLocalStorage<QuickReply[]>('chat_quick_replies', DEFAULT_QUICK_REPLIES);
 
   // Synchronized conversations with real clients & pros

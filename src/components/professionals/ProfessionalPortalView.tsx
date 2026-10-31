@@ -19,11 +19,11 @@ import {
   Send,
   CheckCheck
 } from 'lucide-react';
-import { Professional, Appointment, ProfessionalCommission, ProfessionalAbsence, ChatMessage } from '@/src/types';
+import { Professional, Appointment, ProfessionalCommission, ProfessionalAbsence, ChatMessage, ChatConversation } from '@/src/types';
 import { formatCurrency, cn } from '@/src/lib/utils';
 import { STATUS_LABELS } from '@/src/services/agendaStorage';
 import { useLocalStorage } from '@/src/hooks/useLocalStorage';
-import { sendMessageDirectly, markConversationAsReadDirectly, ADMIN_PARTICIPANT_ID } from '@/src/services/chatStorage';
+import { sendMessageDirectly, markConversationAsReadDirectly, ADMIN_PARTICIPANT_ID, getStoredMessages } from '@/src/services/chatStorage';
 import { getInitialChatBranding, ChatBrandingSettings } from '@/src/services/chatBrandingStorage';
 import { ChatAvatar } from '@/src/components/chat/ChatAvatar';
 
@@ -53,7 +53,7 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
   const [activeTab, setActiveTab] = useState<'agenda' | 'comissoes' | 'perfil' | 'chat'>('agenda');
 
   // Real-time chat sync for logged professional
-  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', []);
+  const [messages, setMessages] = useLocalStorage<ChatMessage[]>('chat_messages', getStoredMessages());
   const [chatInput, setChatInput] = useState('');
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const [branding, setBranding] = useState<ChatBrandingSettings>(() => getInitialChatBranding());
@@ -71,12 +71,15 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
   }, []);
 
   const proConvId = loggedProfessional ? `conv-prof-${loggedProfessional.id}` : null;
+  const [conversations, setConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
 
   useEffect(() => {
     const handleSync = () => {
       try {
         const rawMsgs = localStorage.getItem('chat_messages');
         if (rawMsgs) setMessages(JSON.parse(rawMsgs));
+        const rawConvs = localStorage.getItem('chat_conversations');
+        if (rawConvs) setConversations(JSON.parse(rawConvs));
       } catch (err) {
         console.error('Pro chat sync error:', err);
       }
@@ -88,7 +91,13 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
       window.removeEventListener('salao-luxe-chat-sync', handleSync);
       window.removeEventListener('storage', handleSync);
     };
-  }, [setMessages]);
+  }, [setMessages, setConversations]);
+
+  const proUnreadCount = useMemo(() => {
+    if (!loggedProfessional) return 0;
+    const conv = conversations.find(c => c.id === `conv-prof-${loggedProfessional.id}`);
+    return conv?.unreadCountParticipant || 0;
+  }, [conversations, loggedProfessional]);
 
   useEffect(() => {
     if (activeTab === 'chat' && proConvId) {
@@ -290,10 +299,15 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setActiveTab('chat')}
-            className="flex items-center gap-2 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/30 transition-all"
+            className="relative flex items-center gap-2 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/30 transition-all"
           >
             <MessageSquare size={16} />
-            Chat Recepção
+            <span>Chat Recepção</span>
+            {proUnreadCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold animate-pulse">
+                {proUnreadCount}
+              </span>
+            )}
           </button>
 
           <button
@@ -311,21 +325,29 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
         {[
           { id: 'agenda', label: `Minha Agenda (${proAppointments.length})`, icon: Calendar },
           { id: 'comissoes', label: `Minhas Comissões (${formatCurrency(totalCommissionsEarned)})`, icon: DollarSign },
-          { id: 'chat', label: 'Chat com Recepção', icon: MessageSquare },
+          { id: 'chat', label: 'Chat Recepção', icon: MessageSquare, badge: proUnreadCount },
           { id: 'perfil', label: 'Meu Perfil & Horários', icon: Users }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={cn(
-              "flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap",
+              "relative flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap",
               activeTab === tab.id
                 ? "bg-[#d4af37] text-black shadow-md shadow-[#d4af37]/20"
                 : "text-neutral-400 hover:text-white hover:bg-white/5"
             )}
           >
             <tab.icon size={14} />
-            {tab.label}
+            <span>{tab.label}</span>
+            {Boolean(tab.badge && tab.badge > 0) && (
+              <span className={cn(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                activeTab === tab.id ? "bg-black text-white" : "bg-rose-500 text-white animate-pulse"
+              )}>
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   User, 
   Lock, 
@@ -19,9 +19,10 @@ import {
   Plus,
   Headphones
 } from 'lucide-react';
-import { Client, Appointment, Service, Professional, ClientPurchase } from '@/src/types';
+import { Client, Appointment, Service, Professional, ClientPurchase, ChatConversation } from '@/src/types';
 import { formatCurrency, cn } from '@/src/lib/utils';
 import { STATUS_LABELS } from '@/src/services/agendaStorage';
+import { useLocalStorage } from '@/src/hooks/useLocalStorage';
 import { format } from 'date-fns';
 import { PublicChat } from '@/src/components/chat/PublicChat';
 
@@ -55,6 +56,32 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
 
   // Portal navigation tabs
   const [activeTab, setActiveTab] = useState<'agendamentos' | 'novo_agendamento' | 'favoritos' | 'compras' | 'perfil' | 'chat'>('agendamentos');
+
+  // Real-time chat sync for client
+  const [conversations, setConversations] = useLocalStorage<ChatConversation[]>('chat_conversations', []);
+
+  useEffect(() => {
+    const handleChatSync = () => {
+      try {
+        const raw = localStorage.getItem('chat_conversations');
+        if (raw) setConversations(JSON.parse(raw));
+      } catch (e) {
+        console.error('ClientPortal chat sync error:', e);
+      }
+    };
+    window.addEventListener('salao-luxe-chat-sync', handleChatSync);
+    window.addEventListener('storage', handleChatSync);
+    return () => {
+      window.removeEventListener('salao-luxe-chat-sync', handleChatSync);
+      window.removeEventListener('storage', handleChatSync);
+    };
+  }, [setConversations]);
+
+  const clientUnreadCount = useMemo(() => {
+    if (!loggedClient) return 0;
+    const conv = conversations.find(c => c.id === `conv-client-${loggedClient.id}`);
+    return conv?.unreadCountParticipant || 0;
+  }, [conversations, loggedClient]);
 
   // Booking state for online client booking
   const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id || '');
@@ -309,10 +336,15 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setActiveTab('chat')}
-            className="flex items-center gap-2 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/30 transition-all"
+            className="relative flex items-center gap-2 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/30 transition-all"
           >
             <Headphones size={16} />
-            Chat Luxe
+            <span>Chat Luxe</span>
+            {clientUnreadCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold animate-pulse">
+                {clientUnreadCount}
+              </span>
+            )}
           </button>
 
           <button
@@ -707,10 +739,15 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('chat')}
-              className="p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
+              className="relative p-3 bg-white/5 hover:bg-[#d4af37]/15 border border-white/10 hover:border-[#d4af37]/40 rounded-2xl text-center transition-all group flex flex-col items-center justify-center gap-1.5"
             >
               <Headphones size={18} className="text-[#d4af37]" />
               <span className="text-xs font-bold text-white group-hover:text-[#d4af37]">Chat Luxe</span>
+              {clientUnreadCount > 0 && (
+                <span className="absolute top-2 right-2 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-bold animate-pulse">
+                  {clientUnreadCount}
+                </span>
+              )}
             </button>
           </div>
 
@@ -752,7 +789,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
       {/* TAB: ATENDIMENTO LUXE (CHAT) */}
       {activeTab === 'chat' && (
         <div className="animate-in fade-in">
-          <PublicChat />
+          <PublicChat currentClient={loggedClient} />
         </div>
       )}
     </div>

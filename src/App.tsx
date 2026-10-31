@@ -53,10 +53,27 @@ export default function App() {
   const [purchases] = useLocalStorage<ClientPurchase[]>('client_purchases', getInitialPurchases());
   const [commissions] = useLocalStorage<ProfessionalCommission[]>('commissions', getInitialCommissions());
   const [absences] = useLocalStorage<ProfessionalAbsence[]>('absences', getInitialAbsences());
-  const [chatConversations] = useLocalStorage<ChatConversation[]>(
+  const [chatConversations, setChatConversations] = useLocalStorage<ChatConversation[]>(
     'chat_conversations', 
     getInitialConversations(initialClientsList, initialProfessionalsList)
   );
+
+  useEffect(() => {
+    const handleChatSync = () => {
+      try {
+        const rawConvs = localStorage.getItem('chat_conversations');
+        if (rawConvs) setChatConversations(JSON.parse(rawConvs));
+      } catch (e) {
+        console.error('App chat sync error:', e);
+      }
+    };
+    window.addEventListener('salao-luxe-chat-sync', handleChatSync);
+    window.addEventListener('storage', handleChatSync);
+    return () => {
+      window.removeEventListener('salao-luxe-chat-sync', handleChatSync);
+      window.removeEventListener('storage', handleChatSync);
+    };
+  }, [setChatConversations]);
 
   const totalUnreadChat = chatConversations.reduce((acc, curr) => acc + (curr.unreadCountAdmin || 0), 0);
 
