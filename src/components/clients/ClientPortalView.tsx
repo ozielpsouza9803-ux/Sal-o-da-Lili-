@@ -308,6 +308,14 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setActiveTab('chat')}
+            className="flex items-center gap-2 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/30 transition-all"
+          >
+            <Headphones size={16} />
+            Chat Luxe
+          </button>
+
+          <button
             onClick={() => setActiveTab('novo_agendamento')}
             className="flex items-center gap-2 bg-[#d4af37] text-black px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#b8860b] transition-all shadow-md shadow-[#d4af37]/10"
           >

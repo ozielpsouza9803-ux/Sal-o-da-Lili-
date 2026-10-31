@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, UserSquare2, MessageSquare, Sparkles } from 'lucide-react';
+import { LayoutDashboard, UserSquare2, Sparkles } from 'lucide-react';
 import { ViewType } from '@/src/types';
 import { cn } from '@/src/lib/utils';
 
@@ -28,14 +28,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       icon: UserSquare2,
       isActive: currentView === 'area_cliente' || currentView === 'clientes',
       targetView: 'area_cliente' as ViewType
-    },
-    {
-      id: 'chat',
-      label: 'Chat',
-      icon: MessageSquare,
-      isActive: currentView === 'chat',
-      targetView: 'chat' as ViewType,
-      badge: unreadChatCount > 0 ? unreadChatCount : undefined
     },
     {
       id: 'vitrine',
@@ -75,13 +67,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                     item.isActive && "scale-110 text-[#d4af37]"
                   )} 
                 />
-
-                {/* Unread badge */}
-                {item.badge !== undefined && (
-                  <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full border-2 border-[#0a0a0a] animate-pulse">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
               </div>
 
               <span className={cn(

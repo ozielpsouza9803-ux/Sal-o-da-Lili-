@@ -274,6 +274,14 @@ export const ProfessionalPortalView: React.FC<ProfessionalPortalViewProps> = ({
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setActiveTab('chat')}
+            className="flex items-center gap-2 bg-[#d4af37]/20 text-[#d4af37] border border-[#d4af37]/40 px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#d4af37]/30 transition-all"
+          >
+            <MessageSquare size={16} />
+            Chat Recepção
+          </button>
+
+          <button
             onClick={() => setLoggedProfessional(null)}
             className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
           >
